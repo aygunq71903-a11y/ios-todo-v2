@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -200,17 +199,17 @@
         li.dataset.created = task.created;
         li.dataset.deadline = task.deadline;
 
-        li.innerHTML = \`
+        li.innerHTML = `
             <div class="task-header" onclick="toggleDetails(this)">
-                <span class="task-title \${task.done ? 'done-title' : ''}">\${task.title}</span>
+                <span class="task-title ${task.done ? 'done-title' : ''}">${task.title}</span>
                 <span class="arrow">▼</span>
             </div>
             <div class="task-details">
-                <div class="task-details-text">\${task.desc}</div>
+                <div class="task-details-text">${task.desc}</div>
                 <div class="task-footer">
                     <div>
-                        <b>Oluşturma:</b> \${task.created}<br>
-                        \${task.deadline ? '<b>Hedef:</b> ' + task.deadline : ''}
+                        <b>Oluşturma:</b> ${task.created}<br>
+                        ${task.deadline ? '<b>Hedef:</b> ' + task.deadline : ''}
                     </div>
                     <div class="action-btns">
                         <button class="status-btn" onclick="toggleDone(this)">✓</button>
@@ -218,7 +217,7 @@
                     </div>
                 </div>
             </div>
-        \`;
+        `;
         document.getElementById("list").appendChild(li);
     }
 
@@ -270,5 +269,5 @@
     }
 </script>
 
-<script src="https://replit-cdn.com/replit-pill/replit-pill.global.js" data-referral-code="240v4sv5sk7e" data-repl-id="71a90b02-aeed-41ed-9305-8d8179f75738"></script></body>
+</body>
 </html>
