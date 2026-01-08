@@ -1,0 +1,274 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Görev Planlayıcı</title>
+    <style>
+        :root { 
+            --primary: #007AFF; 
+            --bg: #F2F2F7; 
+            --card-bg: #FFFFFF;
+            --text: #1C1C1E;
+            --secondary-text: #8E8E93;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: center; 
+        }
+
+        .card { 
+            background: var(--card-bg); 
+            width: 100%; 
+            max-width: 450px; 
+            padding: 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+        }
+
+        h2 { text-align: center; color: var(--text); margin-bottom: 20px; font-weight: 700; }
+        
+        /* Giriş Alanı */
+        .input-area { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            margin-bottom: 25px; 
+            background: #F9F9FB; 
+            padding: 15px; 
+            border-radius: 15px; 
+        }
+
+        input, textarea { 
+            padding: 14px; 
+            border: 1px solid #D1D1D6; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            outline: none; 
+            transition: border 0.3s;
+        }
+
+        input:focus, textarea:focus { border-color: var(--primary); }
+        textarea { resize: none; height: 70px; }
+        
+        .date-row { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            font-size: 14px; 
+            color: var(--secondary-text); 
+        }
+
+        input[type="date"] { flex: 1; padding: 10px; }
+        
+        .add-btn { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 14px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 16px; 
+        }
+
+        /* Liste Alanı */
+        ul { list-style: none; padding: 0; margin: 0; }
+        
+        li { 
+            background: white; 
+            border-bottom: 1px solid #E5E5EA; 
+            padding: 15px 0; 
+            transition: all 0.3s;
+        }
+
+        .task-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            cursor: pointer; 
+        }
+
+        .task-title { 
+            font-size: 17px; 
+            font-weight: 600; 
+            color: var(--text); 
+            flex: 1; 
+        }
+
+        .done-title { text-decoration: line-through; color: var(--secondary-text); }
+        
+        .arrow { font-size: 12px; color: #C7C7CC; transition: transform 0.3s; }
+        .rotate { transform: rotate(180deg); }
+
+        /* Detay Paneli */
+        .task-details { 
+            display: none; 
+            margin-top: 12px; 
+            padding: 12px; 
+            background: #F2F2F7; 
+            border-radius: 10px; 
+            font-size: 14px; 
+            color: #3A3A3C; 
+            word-wrap: break-word;
+        }
+
+        .show-details { display: block; }
+        
+        .task-footer { 
+            margin-top: 12px; 
+            font-size: 11px; 
+            color: var(--secondary-text); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-end; 
+        }
+
+        .action-btns { display: flex; gap: 8px; }
+        
+        .del-btn { 
+            color: #FF3B30; 
+            background: #FFF0F0; 
+            border: none; 
+            padding: 6px 12px; 
+            border-radius: 6px; 
+            font-weight: 600;
+        }
+
+        .status-btn { 
+            color: var(--primary); 
+            background: #E8F2FF; 
+            border: none; 
+            padding: 6px 12px; 
+            border-radius: 6px; 
+            font-weight: 600;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>📝 Planlarım</h2>
+    
+    <div class="input-area">
+        <input type="text" id="titleInp" placeholder="Konu Başlığı">
+        <textarea id="descInp" placeholder="Detaylar (Opsiyonel)"></textarea>
+        <div class="date-row">
+            <span>Bitiş Tarihi:</span>
+            <input type="date" id="dateInp">
+        </div>
+        <button class="add-btn" onclick="add()">Listeye Kaydet</button>
+    </div>
+
+    <ul id="list"></ul>
+</div>
+
+<script>
+    // Verileri Yükle
+    window.onload = () => {
+        const saved = JSON.parse(localStorage.getItem("ios_todo_v1") || "[]");
+        saved.forEach(t => render(t));
+    };
+
+    // Verileri Kaydet
+    function save() {
+        const tasks = [];
+        document.querySelectorAll("li").forEach(li => {
+            tasks.push({
+                title: li.querySelector(".task-title").innerText,
+                desc: li.querySelector(".task-details-text").innerText,
+                created: li.dataset.created,
+                deadline: li.dataset.deadline,
+                done: li.querySelector(".task-title").classList.contains("done-title")
+            });
+        });
+        localStorage.setItem("ios_todo_v1", JSON.stringify(tasks));
+    }
+
+    // Ekrana Çiz
+    function render(task) {
+        const li = document.createElement("li");
+        li.dataset.created = task.created;
+        li.dataset.deadline = task.deadline;
+
+        li.innerHTML = \`
+            <div class="task-header" onclick="toggleDetails(this)">
+                <span class="task-title \${task.done ? 'done-title' : ''}">\${task.title}</span>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="task-details">
+                <div class="task-details-text">\${task.desc}</div>
+                <div class="task-footer">
+                    <div>
+                        <b>Oluşturma:</b> \${task.created}<br>
+                        \${task.deadline ? '<b>Hedef:</b> ' + task.deadline : ''}
+                    </div>
+                    <div class="action-btns">
+                        <button class="status-btn" onclick="toggleDone(this)">✓</button>
+                        <button class="del-btn" onclick="this.closest('li').remove();save()">Sil</button>
+                    </div>
+                </div>
+            </div>
+        \`;
+        document.getElementById("list").appendChild(li);
+    }
+
+    // Detay Aç/Kapat
+    function toggleDetails(header) {
+        const details = header.nextElementSibling;
+        const arrow = header.querySelector(".arrow");
+        details.classList.toggle("show-details");
+        arrow.classList.toggle("rotate");
+    }
+
+    // Tamamlandı Yap
+    function toggleDone(btn) {
+        const li = btn.closest('li');
+        const title = li.querySelector('.task-title');
+        title.classList.toggle('done-title');
+        save();
+    }
+
+    // Yeni Görev Ekle
+    function add() {
+        const title = document.getElementById("titleInp");
+        const desc = document.getElementById("descInp");
+        const date = document.getElementById("dateInp");
+        
+        if(!title.value.trim()) {
+            alert("Lütfen bir başlık girin!");
+            return;
+        }
+
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('tr-TR') + " " + now.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
+
+        const newTask = {
+            title: title.value,
+            desc: desc.value || "Açıklama yok.",
+            created: dateStr,
+            deadline: date.value,
+            done: false
+        };
+
+        render(newTask);
+        save();
+        
+        // Formu temizle
+        title.value = "";
+        desc.value = "";
+        date.value = "";
+    }
+</script>
+
+<script src="https://replit-cdn.com/replit-pill/replit-pill.global.js" data-referral-code="240v4sv5sk7e" data-repl-id="71a90b02-aeed-41ed-9305-8d8179f75738"></script></body>
+</html>
