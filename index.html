@@ -30,12 +30,7 @@
     textarea{width:100%;min-height:70px;resize:vertical}
 
     .sub-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
-    .sub-row input{flex:0 0 auto}
-
-    #attendeesInp{
-      max-width:360px;
-      width:360px;
-    }
+    #attendeesInp{max-width:360px;width:360px}
 
     .icon-btn{
       width:44px;height:44px;
@@ -105,42 +100,31 @@
       flex-direction:column;
       gap:8px;
     }
-    .edit-row{display:flex;gap:8px;flex-wrap:wrap}
+    .edit-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
     .edit-row input[type="text"]{flex:1 1 220px}
     .edit-row input[type="datetime-local"]{min-width:220px}
+    .edit-row textarea{min-height:70px}
 
-    .toolbar input, .toolbar select, .toolbar button{
-      padding: 8px;
-      font-size: 14px;
-    }
+    .toolbar input, .toolbar select, .toolbar button{padding:8px;font-size:14px}
 
     /* Modal (Kişi seçici) */
     .modal{
       position:fixed; inset:0;
       background:rgba(0,0,0,.35);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:18px;
-      z-index:9999;
+      display:flex; align-items:center; justify-content:center;
+      padding:18px; z-index:9999;
     }
     .modal.hidden{display:none}
     .modal-card{
       width:min(680px, 100%);
-      background:#fff;
-      border-radius:14px;
+      background:#fff;border-radius:14px;
       box-shadow:0 12px 40px rgba(0,0,0,.18);
-      overflow:hidden;
-      border:1px solid #eee;
+      overflow:hidden;border:1px solid #eee;
     }
     .modal-head{
       padding:12px 14px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      border-bottom:1px solid #eee;
-      background:#fafafa;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px;border-bottom:1px solid #eee;background:#fafafa;
     }
     .modal-head strong{font-size:15px}
     .modal-body{padding:12px 14px}
@@ -150,34 +134,32 @@
     .btn{padding:8px 10px;border-radius:10px;border:1px solid #e5e5ea;background:#fff;cursor:pointer}
     .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
     .contacts{
-      margin-top:10px;
-      max-height:320px;
-      overflow:auto;
-      border:1px solid #eee;
-      border-radius:12px;
+      margin-top:10px; max-height:320px; overflow:auto;
+      border:1px solid #eee; border-radius:12px;
     }
-    .contact-item{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      padding:10px 12px;
+    .section-title{
+      font-size:12px; color:var(--muted);
+      padding:10px 12px; background:#fbfbfd;
       border-bottom:1px solid #f0f0f0;
     }
+    .contact-item{
+      display:flex;justify-content:space-between;align-items:center;
+      gap:10px;padding:10px 12px;border-bottom:1px solid #f0f0f0;
+    }
     .contact-item:last-child{border-bottom:none}
+    .contact-left{display:flex;flex-direction:column;gap:2px}
     .contact-name{font-weight:600}
     .contact-mail{font-size:12px;color:var(--muted)}
-    .contact-left{display:flex;flex-direction:column;gap:2px}
+    .contact-right{display:flex;gap:8px;align-items:center}
+
     .pill{
-      font-size:12px;
-      padding:4px 10px;
-      border-radius:999px;
-      border:1px solid #e5e5ea;
-      background:#fff;
-      cursor:pointer;
+      font-size:12px;padding:4px 10px;border-radius:999px;
+      border:1px solid #e5e5ea;background:#fff;cursor:pointer;
     }
     .pill.add{border-color:#c9f2df;background:#f4fff8;color:#0f6b36}
     .pill.added{border-color:#d6eaff;background:#f4f9ff;color:#0b63d1;cursor:default}
+    .pill.star{border-color:#ffe0a3;background:#fff8e6;color:#9a6700}
+    .pill.starred{border-color:#ffd36b;background:#fff1c9;color:#8a5a00}
 
     @media (max-width:600px){
       input#titleInp{width:100%}
@@ -188,21 +170,15 @@
       .add-row{flex-direction:column;align-items:stretch}
       .toolbar{flex-direction:column;align-items:stretch}
       .toolbar select{width:100%}
-      .toolbar input, .toolbar select, .toolbar button{
-        padding: 7px;
-        font-size: 13px;
-      }
+      .toolbar input, .toolbar select, .toolbar button{padding:7px;font-size:13px}
 
       /* Mobilde arama alanı küçük */
       .toolbar input[type="text"]{
-        flex: 0 0 auto;
-        height: 44px;
-        padding: 8px 10px;
-        min-width: 0;
+        flex:0 0 auto;height:44px;padding:8px 10px;min-width:0;
       }
 
-      .icon-btn{width:100%; height:44px; font-size:16px}
-      .edit-row{flex-direction:column}
+      .icon-btn{width:100%;height:44px;font-size:16px;line-height:44px}
+      .edit-row{flex-direction:column;align-items:stretch}
       .edit-row input[type="datetime-local"]{width:100%}
       .contacts{max-height:55vh}
     }
@@ -286,15 +262,23 @@
   </div>
 
 <script>
+/* =========================
+   Storage Keys
+   ========================= */
 const STORAGE_KEY = 'ios_todo_v3';
+const FAVORITES_KEY = 'gp_favorites_v1'; // ⭐ Sık kullanılanlar
 
-// 10 dk kala + hedef saat geçtikten 1 sn sonra
+/* =========================
+   Notifications
+   ========================= */
 const NOTIFY_BEFORE_MIN = 10;
 const LATE_AFTER_MS = 1000;
-
 const CHECK_INTERVAL_MS = 30 * 1000;
 const MAX_TIMEOUT = 2147483647;
 
+/* =========================
+   DOM
+   ========================= */
 const listEl = document.getElementById('list');
 const titleInp = document.getElementById('titleInp');
 const descInp = document.getElementById('descInp');
@@ -319,9 +303,15 @@ const sortSel = document.getElementById('sortSel');
 const clearSearchBtn = document.getElementById('clearSearch');
 const summaryEl = document.getElementById('summary');
 
+/* =========================
+   State
+   ========================= */
 let tasks = [];
 let scheduled = {};
 let editingId = null;
+
+// Kişi seçici hedef input (Plan oluştur veya Düzenle paneli)
+let currentAttendeeTargetInput = attendeesInp;
 
 // Kartal sesi 5 defa
 const eagleAudio = new Audio('https://upload.wikimedia.org/wikipedia/commons/5/59/Bald_Eagle_Yellowstone_National_Park.ogg');
@@ -358,11 +348,9 @@ function playAudioNTimes(audio, times){
 
 /* =========================
    Outlook / Microsoft Graph
-   =========================
-   Not: Kişi listesi için People.Read gerekir.
-*/
+   ========================= */
 const OUTLOOK_CLIENT_ID = "ba813c6d-7f29-4cdb-84ae-43a9bdbc7747";
-const OUTLOOK_SCOPES = ["User.Read", "Calendars.ReadWrite", "People.Read"]; // Contacts için gerekli
+const OUTLOOK_SCOPES = ["User.Read", "Calendars.ReadWrite", "People.Read"];
 
 let msalInstance = null;
 let msalAccount = null;
@@ -396,8 +384,41 @@ async function getAccessToken(){
   }
 }
 
-/* Kişiler (Microsoft) */
-let cachedPeople = [];             // {name,email}
+/* =========================
+   Favorites (⭐ Sık Kullanılanlar)
+   ========================= */
+function loadFavorites(){
+  try {
+    const arr = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]');
+    return Array.isArray(arr) ? arr : [];
+  } catch(e){ return []; }
+}
+function saveFavorites(arr){
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(arr));
+}
+function isFavorite(email){
+  const favs = loadFavorites();
+  return favs.some(x => (x.email||'').toLowerCase() === (email||'').toLowerCase());
+}
+function toggleFavorite(person){
+  const email = (person.email||'').toLowerCase();
+  if (!email) return;
+
+  let favs = loadFavorites();
+  const idx = favs.findIndex(x => (x.email||'').toLowerCase() === email);
+  if (idx >= 0) {
+    favs.splice(idx, 1);
+  } else {
+    favs.unshift({ name: person.name || 'Kişi', email });
+    favs = favs.slice(0, 50);
+  }
+  saveFavorites(favs);
+}
+
+/* =========================
+   People picker
+   ========================= */
+let cachedPeople = [];
 let selectedPeopleEmails = new Set();
 
 function peopleToSimple(items){
@@ -416,7 +437,6 @@ function peopleToSimple(items){
     const email = (emails.find(x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(x).toLowerCase())) || '').toLowerCase();
     if (email) out.push({ name, email });
   }
-  // uniq by email
   const seen = new Set();
   return out.filter(p => !seen.has(p.email) && seen.add(p.email));
 }
@@ -432,26 +452,25 @@ async function fetchPeople(searchText){
     ? `https://graph.microsoft.com/v1.0/me/people?$search="${encodeURIComponent(q)}"&$top=30`
     : `https://graph.microsoft.com/v1.0/me/people?$top=50`;
 
-  const headers = {
-    Authorization: 'Bearer ' + token
-  };
-
-  // $search için bu header şart
+  const headers = { Authorization: 'Bearer ' + token };
   if (hasQuery) headers['ConsistencyLevel'] = 'eventual';
 
   const resp = await fetch(url, { headers });
   if (!resp.ok) throw new Error('Kişiler alınamadı: ' + resp.status + ' ' + await resp.text());
   const data = await resp.json();
-  const simple = peopleToSimple(data.value || []);
-  return simple;
+  return peopleToSimple(data.value || []);
 }
 
-function openContactsModal(){
+function openContactsModal(targetInput){
+  currentAttendeeTargetInput = targetInput || attendeesInp;
+
   contactModal.classList.remove('hidden');
   contactSearchInp.value = '';
   contactInfo.textContent = 'Kişiler yükleniyor... (Microsoft hesabın ile giriş ister)';
   contactsList.innerHTML = '';
-  selectedPeopleEmails = new Set(parseEmails(attendeesInp.value));
+
+  selectedPeopleEmails = new Set(parseEmails(currentAttendeeTargetInput.value));
+
   loadContacts('');
 }
 
@@ -463,82 +482,125 @@ async function loadContacts(query){
   try {
     const people = await fetchPeople(query);
     if (!query) cachedPeople = people;
-    renderContacts(people);
-    contactInfo.textContent = people.length ? 'Kişi seçip “Ekle”ye bas.' : 'Kişi bulunamadı. Aramayı değiştir veya manuel yaz.';
+    renderContacts(people, query);
+    contactInfo.textContent = 'Kişi seç, yıldızla ve “Ekle”ye bas.';
   } catch(err){
     console.error(err);
-    contactInfo.textContent =
-      'Kişiler çekilemedi. (İzin/hesap türü olabilir) Yine de maili manuel yazabilirsin.';
-    renderContacts([]);
+    renderContacts([], query);
+    contactInfo.textContent = 'Kişiler çekilemedi. Yine de maili manuel yazabilirsin. ⭐ Sık kullanılanlar çalışır.';
   }
 }
 
-function renderContacts(people){
+function renderContacts(people, query){
   contactsList.innerHTML = '';
-  const list = people || [];
+
+  const q = (query || '').trim().toLowerCase();
+
+  // Favorites first (filtered)
+  const favs = loadFavorites().filter(p => {
+    if (!q) return true;
+    return (p.name + ' ' + p.email).toLowerCase().includes(q);
+  });
+
+  if (favs.length) {
+    const st = document.createElement('div');
+    st.className = 'section-title';
+    st.textContent = '⭐ Sık Kullanılanlar';
+    contactsList.appendChild(st);
+    for (const p of favs) contactsList.appendChild(buildContactRow(p, true));
+  }
+
+  const list = (people || []).filter(p => {
+    // favoriler tekrar etmesin
+    if (isFavorite(p.email)) return false;
+    if (!q) return true;
+    return (p.name + ' ' + p.email).toLowerCase().includes(q);
+  });
+
+  const st2 = document.createElement('div');
+  st2.className = 'section-title';
+  st2.textContent = '📜 Kişiler';
+  contactsList.appendChild(st2);
 
   if (!list.length) {
     const empty = document.createElement('div');
     empty.style.padding = '12px';
     empty.style.color = '#666';
-    empty.textContent = 'Liste boş.';
+    empty.textContent = 'Liste boş. Aramayı değiştir veya ⭐ sık kullanılanlardan seç.';
     contactsList.appendChild(empty);
     return;
   }
 
-  for (const p of list) {
-    const row = document.createElement('div');
-    row.className = 'contact-item';
-
-    const left = document.createElement('div');
-    left.className = 'contact-left';
-
-    const nm = document.createElement('div');
-    nm.className = 'contact-name';
-    nm.textContent = p.name;
-
-    const em = document.createElement('div');
-    em.className = 'contact-mail';
-    em.textContent = p.email;
-
-    left.appendChild(nm);
-    left.appendChild(em);
-
-    const btn = document.createElement('button');
-    const already = selectedPeopleEmails.has(p.email);
-    btn.className = 'pill ' + (already ? 'added' : 'add');
-    btn.textContent = already ? 'Eklendi' : 'Ekle';
-    btn.disabled = already;
-
-    btn.onclick = () => {
-      selectedPeopleEmails.add(p.email);
-      btn.className = 'pill added';
-      btn.textContent = 'Eklendi';
-      btn.disabled = true;
-    };
-
-    row.appendChild(left);
-    row.appendChild(btn);
-    contactsList.appendChild(row);
-  }
+  for (const p of list) contactsList.appendChild(buildContactRow(p, false));
 }
 
-pickContactBtn.addEventListener('click', openContactsModal);
+function buildContactRow(p, isFavRow){
+  const row = document.createElement('div');
+  row.className = 'contact-item';
+
+  const left = document.createElement('div');
+  left.className = 'contact-left';
+
+  const nm = document.createElement('div');
+  nm.className = 'contact-name';
+  nm.textContent = p.name || 'Kişi';
+
+  const em = document.createElement('div');
+  em.className = 'contact-mail';
+  em.textContent = p.email || '';
+
+  left.appendChild(nm);
+  left.appendChild(em);
+
+  const right = document.createElement('div');
+  right.className = 'contact-right';
+
+  // ⭐ Star toggle
+  const starBtn = document.createElement('button');
+  const starred = isFavorite(p.email);
+  starBtn.className = 'pill ' + (starred ? 'starred' : 'star');
+  starBtn.textContent = starred ? '★' : '☆';
+  starBtn.title = starred ? 'Sık kullanılanlardan kaldır' : 'Sık kullanılanlara ekle';
+  starBtn.onclick = () => {
+    toggleFavorite(p);
+    // ekranı yeniden çiz
+    renderContacts(cachedPeople, contactSearchInp.value);
+  };
+  right.appendChild(starBtn);
+
+  // Add select
+  const already = selectedPeopleEmails.has((p.email||'').toLowerCase());
+  const addBtn = document.createElement('button');
+  addBtn.className = 'pill ' + (already ? 'added' : 'add');
+  addBtn.textContent = already ? 'Eklendi' : 'Ekle';
+  addBtn.disabled = already;
+  addBtn.onclick = () => {
+    const e = (p.email||'').toLowerCase();
+    if (!e) return;
+    selectedPeopleEmails.add(e);
+    addBtn.className = 'pill added';
+    addBtn.textContent = 'Eklendi';
+    addBtn.disabled = true;
+  };
+  right.appendChild(addBtn);
+
+  row.appendChild(left);
+  row.appendChild(right);
+  return row;
+}
+
+pickContactBtn.addEventListener('click', () => openContactsModal(attendeesInp));
 contactCloseBtn.addEventListener('click', closeContactsModal);
 contactDoneBtn.addEventListener('click', () => {
-  const merged = new Set(parseEmails(attendeesInp.value));
+  const merged = new Set(parseEmails(currentAttendeeTargetInput.value));
   for (const e of selectedPeopleEmails) merged.add(e);
-  attendeesInp.value = Array.from(merged).join(', ');
+  currentAttendeeTargetInput.value = Array.from(merged).join(', ');
   closeContactsModal();
 });
 contactSearchBtn.addEventListener('click', () => loadContacts(contactSearchInp.value));
 contactRefreshBtn.addEventListener('click', () => loadContacts(contactSearchInp.value));
-contactSearchInp.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') loadContacts(contactSearchInp.value);
-});
-contactModal.addEventListener('click', (e) => {
-  if (e.target === contactModal) closeContactsModal();
-});
+contactSearchInp.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadContacts(contactSearchInp.value); });
+contactModal.addEventListener('click', (e) => { if (e.target === contactModal) closeContactsModal(); });
 
 /* =========================
    App core
@@ -558,9 +620,6 @@ window.addEventListener('load', () => {
 
 addBtn.addEventListener('click', addTask);
 titleInp.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
-descInp.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') addTask();
-});
 
 [searchInp, statusFilter, sortSel].forEach(el => {
   el.addEventListener('input', refreshList);
@@ -605,7 +664,7 @@ function parseEmails(raw){
     if (seen.has(email)) continue;
     seen.add(email);
     ok.push(email);
-    if (ok.length >= 20) break;
+    if (ok.length >= 50) break;
   }
   return ok;
 }
@@ -632,7 +691,6 @@ function loadTasks(){
     tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     if (!Array.isArray(tasks)) tasks = [];
   } catch(e) {
-    console.error('localStorage parse error', e);
     localStorage.removeItem(STORAGE_KEY);
     tasks = [];
   }
@@ -798,6 +856,98 @@ function renderTask(task){
     left.appendChild(metaDiv);
   }
 
+  // ✅ Edit panel
+  if (editingId === task.id) {
+    const panel = document.createElement('div');
+    panel.className = 'edit-panel';
+
+    const row1 = document.createElement('div');
+    row1.className = 'edit-row';
+
+    const eTitle = document.createElement('input');
+    eTitle.type = 'text';
+    eTitle.value = task.title;
+
+    const eDeadline = document.createElement('input');
+    eDeadline.type = 'datetime-local';
+    eDeadline.value = isoToLocalInput(task.deadline);
+
+    row1.appendChild(eTitle);
+    row1.appendChild(eDeadline);
+
+    const row2 = document.createElement('div');
+    row2.className = 'edit-row';
+
+    const ePrio = document.createElement('select');
+    ePrio.innerHTML = `
+      <option value="low">Öncelik: Düşük</option>
+      <option value="medium">Öncelik: Orta</option>
+      <option value="high">Öncelik: Yüksek</option>
+    `;
+    ePrio.value = task.priority || 'medium';
+
+    row2.appendChild(ePrio);
+
+    const eDesc = document.createElement('textarea');
+    eDesc.value = task.desc || '';
+
+    const row3 = document.createElement('div');
+    row3.className = 'edit-row';
+
+    const eAtt = document.createElement('input');
+    eAtt.type = 'text';
+    eAtt.placeholder = 'Davet e-postaları (virgülle)';
+    eAtt.value = (task.attendees || []).join(', ');
+
+    const ePick = document.createElement('button');
+    ePick.className = 'icon-btn';
+    ePick.type = 'button';
+    ePick.textContent = '+';
+    ePick.title = 'Kişi seç';
+    ePick.onclick = () => openContactsModal(eAtt);
+
+    row3.appendChild(eAtt);
+    row3.appendChild(ePick);
+
+    const row4 = document.createElement('div');
+    row4.className = 'edit-row';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'action save';
+    saveBtn.textContent = 'Kaydet';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'action cancel';
+    cancelBtn.textContent = 'İptal';
+
+    saveBtn.onclick = (e) => {
+      e.stopPropagation();
+      saveEdit(task.id, {
+        title: eTitle.value,
+        deadline: localInputToISO(eDeadline.value),
+        priority: ePrio.value,
+        desc: eDesc.value,
+        attendees: parseEmails(eAtt.value)
+      });
+    };
+    cancelBtn.onclick = (e) => {
+      e.stopPropagation();
+      editingId = null;
+      refreshList();
+    };
+
+    row4.appendChild(saveBtn);
+    row4.appendChild(cancelBtn);
+
+    panel.appendChild(row1);
+    panel.appendChild(row2);
+    panel.appendChild(eDesc);
+    panel.appendChild(row3);
+    panel.appendChild(row4);
+
+    left.appendChild(panel);
+  }
+
   const right = document.createElement('div');
   right.className = 'actions';
 
@@ -806,6 +956,16 @@ function renderTask(task){
   doneBtn.textContent = task.done ? 'Geri Al' : 'Tamamlandı';
   doneBtn.onclick = (e) => { e.stopPropagation(); toggleDone(task.id); };
   right.appendChild(doneBtn);
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'action edit';
+  editBtn.textContent = 'Düzenle';
+  editBtn.onclick = (e) => {
+    e.stopPropagation();
+    editingId = (editingId === task.id) ? null : task.id;
+    refreshList();
+  };
+  right.appendChild(editBtn);
 
   const calBtn = document.createElement('button');
   calBtn.className = 'action calendar';
@@ -819,8 +979,7 @@ function renderTask(task){
   shareBtn.onclick = async (e) => { e.stopPropagation(); await shareICS(task); };
   right.appendChild(shareBtn);
 
-  // ✅ OUTLOOK: mail yazmasa da kendi takvimine ekler
-  // ✅ mail yazdıysa attendees ekler ve Outlook davet yollar
+  // Outlook: mail yoksa sadece kendi takvimine, mail varsa davet de gider
   const outBtn = document.createElement('button');
   outBtn.className = 'action outlook';
   outBtn.textContent = "Outlook'a Ekle";
@@ -848,11 +1007,37 @@ function renderTask(task){
   listEl.appendChild(li);
 }
 
-/* delete/done */
+/* edit/save/delete/done */
+function saveEdit(id, patch){
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+
+  const newTitle = (patch.title || '').trim();
+  if (!newTitle) { alert('Başlık boş olamaz!'); return; }
+
+  const oldDeadline = t.deadline || '';
+  t.title = newTitle;
+  t.desc = (patch.desc || '').trim();
+  t.priority = patch.priority || 'medium';
+  t.deadline = patch.deadline || '';
+  t.attendees = Array.isArray(patch.attendees) ? patch.attendees : [];
+
+  if (!t.done && (t.deadline !== oldDeadline)) {
+    t.alertedBefore = false;
+    t.alertedLate = false;
+  }
+
+  save();
+  editingId = null;
+  refreshList();
+  scheduleAll();
+}
+
 function deleteTask(id){
   tasks = tasks.filter(t => t.id !== id);
   save();
   clearTimersForTask(id);
+  if (editingId === id) editingId = null;
   refreshList();
 }
 
@@ -884,14 +1069,15 @@ function updateOverdueUI(){
   });
 }
 
-/* Notifications */
+/* Notification permission */
 async function requestNotificationPermission(){
   if (!('Notification' in window)) return;
   if (Notification.permission === 'default') {
-    try { await Notification.requestPermission(); } catch(e){ console.warn(e); }
+    try { await Notification.requestPermission(); } catch(e){ }
   }
 }
 
+/* Scheduling */
 function clearTimersForTask(id){
   Object.keys(scheduled).forEach(k => {
     if (k.startsWith(id + '_')) {
@@ -903,7 +1089,6 @@ function clearTimersForTask(id){
 
 function scheduleForTask(task){
   if (!task.deadline || task.done) return;
-
   const d = new Date(task.deadline);
   if (isNaN(d)) return;
 
@@ -926,11 +1111,7 @@ function scheduleOne(task, fireAt, kind){
 
   scheduled[key] = setTimeout(() => {
     const cur = tasks.find(x => x.id === task.id);
-    if (!cur || cur.done) {
-      clearTimeout(scheduled[key]);
-      delete scheduled[key];
-      return;
-    }
+    if (!cur || cur.done) { clearTimeout(scheduled[key]); delete scheduled[key]; return; }
 
     if (kind === 'before' && cur.alertedBefore) return;
     if (kind === 'late' && cur.alertedLate) return;
@@ -941,7 +1122,6 @@ function scheduleOne(task, fireAt, kind){
     if (kind === 'late') cur.alertedLate = true;
 
     save();
-
     clearTimeout(scheduled[key]);
     delete scheduled[key];
   }, delay);
@@ -969,9 +1149,7 @@ function sendAlarm(task, kind){
     } else {
       alert((kind === 'before' ? '10 dk kaldı: ' : 'Gecikti: ') + task.title);
     }
-  } catch(e){
-    console.error('Notification error', e);
-  }
+  } catch(e){ }
 
   try {
     playAudioNTimes(eagleAudio, 5);
@@ -980,6 +1158,7 @@ function sendAlarm(task, kind){
   }
 }
 
+/* Storage listener */
 window.addEventListener('storage', e => {
   if (e.key === STORAGE_KEY) {
     try { tasks = JSON.parse(e.newValue || '[]').map(normalizeTask); } catch(err){ tasks = []; }
@@ -988,7 +1167,7 @@ window.addEventListener('storage', e => {
   }
 });
 
-/* ICS (iOS/Android takvim) */
+/* ICS */
 function pad2(n){ return String(n).padStart(2,'0'); }
 function toICSDateUTC(date){
   return date.getUTCFullYear() +
@@ -1038,14 +1217,12 @@ function buildICS(task){
     'END:VCALENDAR'
   ].filter(Boolean).join('\r\n');
 }
-
 function makeICSBlob(task){
   const ics = buildICS(task);
   const filename = (task.title || 'plan').replace(/[^\w\-]+/g,'_').slice(0,40) + '.ics';
   const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
   return { blob, filename };
 }
-
 async function addToNativeCalendar(task){
   const { blob, filename } = makeICSBlob(task);
 
@@ -1068,13 +1245,10 @@ async function addToNativeCalendar(task){
 
   alert('ICS indirildi. Dosyayı açıp Takvim’e ekleyebilirsin.');
 }
-
 async function shareICS(task){
   const { blob, filename } = makeICSBlob(task);
   const people = (task.attendees || []).join(', ');
-  const text = people
-    ? `Plan paylaşımı: ${people}\n\nDosyayı açıp Takvim'e ekleyin.`
-    : `Dosyayı açıp Takvim'e ekleyin.`;
+  const text = people ? `Plan paylaşımı: ${people}\n\nDosyayı açıp Takvim'e ekleyin.` : `Dosyayı açıp Takvim'e ekleyin.`;
 
   try {
     const file = new File([blob], filename, { type: 'text/calendar' });
@@ -1105,7 +1279,6 @@ async function createOutlookEvent(task, withAttendees){
     end: { dateTime: end.toISOString(), timeZone: tz }
   };
 
-  // ✅ davetler sadece varsa eklenir, yoksa sorun çıkarmaz
   if (withAttendees && task.attendees && task.attendees.length) {
     event.attendees = task.attendees.map(email => ({
       emailAddress: { address: email },
@@ -1130,10 +1303,6 @@ window.debug_clearAll = function(){
   editingId = null;
   refreshList();
 };
-
-/* init */
-function saveAndRender(){ save(); refreshList(); }
-
 </script>
 </body>
 </html>
