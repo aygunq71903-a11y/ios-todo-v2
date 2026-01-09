@@ -25,14 +25,24 @@
 
     .input-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
     input,textarea,button,select{font-size:15px;padding:10px;border-radius:8px;border:1px solid var(--border);background:#fff}
-    /* Başlık alanı küçük olsun */
+    /* Başlık alanı küçük */
     input#titleInp{width:220px;flex:0 0 auto}
     input[type="datetime-local"]{min-width:220px}
     textarea{width:100%;min-height:70px;resize:vertical}
 
+    .sub-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+    .sub-row input{flex:1 1 260px}
+
     .add-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
     .add-btn{background:var(--primary);color:#fff;border:none;cursor:pointer;padding:10px 14px}
     .hint{font-size:13px;color:var(--muted)}
+
+    /* Ara / filtre / sıralama */
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+    .toolbar input[type="text"]{flex:1 1 220px}
+    .toolbar select{min-width:160px}
+    .ghost{background:#fff;border:1px solid var(--border);cursor:pointer}
+    .summary{margin-top:10px;font-size:13px;color:var(--muted)}
 
     ul{list-style:none;padding:0;margin:12px 0 0 0}
     li{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:12px;border-radius:8px;background:#fff;border:1px solid #eee;margin-bottom:10px;transition:all .15s}
@@ -53,6 +63,7 @@
     .chip.prio-high{border-color:#ffd5d2;background:#fff6f6}
     .chip.prio-med{border-color:#e5e5ea;background:#fafafa}
     .chip.prio-low{border-color:#d6eaff;background:#f4f9ff}
+    .chip.people{border-color:#d7f0e0;background:#f4fff8;color:#0f6b36}
 
     .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     button.action{padding:6px 10px;border-radius:6px;border:none;cursor:pointer}
@@ -62,6 +73,7 @@
     button.save{background:#e9f7ff;color:#0b63d1;border:1px solid #cfe8ff}
     button.cancel{background:#f2f2f7;color:#444;border:1px solid #e5e5ea}
     button.calendar{background:#f5f0ff;color:#5b2bd6;border:1px solid #e6dbff}
+    button.share{background:#eafff7;color:#0f6b36;border:1px solid #c9f2df}
     button.outlook{background:#eef6ff;color:var(--primary);border:1px solid #d6eaff}
 
     .overdue{border-left:6px solid var(--danger)}
@@ -85,7 +97,10 @@
       input#titleInp{width:100%}
       .input-row{flex-direction:column;align-items:stretch}
       input[type="datetime-local"]{width:100%}
+      .sub-row{flex-direction:column;align-items:stretch}
       .add-row{flex-direction:column;align-items:stretch}
+      .toolbar{flex-direction:column;align-items:stretch}
+      .toolbar select{width:100%}
       .edit-row{flex-direction:column}
       .edit-row input[type="datetime-local"]{width:100%}
     }
@@ -94,18 +109,20 @@
   <!-- MSAL for Outlook (opsiyonel) -->
   <script src="https://alcdn.msauth.net/browser/2.28.1/js/msal-browser.min.js"></script>
 </head>
+
 <body>
   <div class="wrap">
     <div class="card">
       <h1>📝 Görev Planlayıcı</h1>
+      <div class="notice">
+        Bildirimler için tarayıcı izin verin.
+        Paylaşım: Outlook daveti otomatik mail gönderir. Diğerlerinde “Paylaş (ICS)” ile kişiye gönderip takvime ekletirsin.
+      </div>
 
-      <div class="notice">Bildirimler için tarayıcı izin verin. (Bazı tarayıcılarda sayfa arka plandayken bildirim kısıtlanabilir.)</div>
-
-      <!-- Ekleme Alanı -->
+      <!-- Ekleme -->
       <div class="input-row">
         <input id="titleInp" type="text" placeholder="Konu Başlığı" />
         <input id="datetimeInp" type="datetime-local" />
-
         <select id="prioInp" aria-label="Öncelik">
           <option value="low">Öncelik: Düşük</option>
           <option value="medium" selected>Öncelik: Orta</option>
@@ -115,26 +132,43 @@
 
       <textarea id="descInp" placeholder="Detaylar (opsiyonel)"></textarea>
 
-      <!-- Buton Detaylar Altında -->
+      <!-- Paylaşılacak kişiler -->
+      <div class="sub-row">
+        <input id="attendeesInp" type="text" placeholder="Paylaşılacak e-postalar (virgülle): ali@x.com, ayse@y.com" />
+      </div>
+
+      <!-- Plan Oluştur butonu Detay altı -->
       <div class="add-row">
         <button id="addBtn" class="add-btn">Plan Oluştur</button>
-        <div class="hint">Takvime eklemek için görevlerdeki "Takvime Ekle" butonunu kullanabilirsin.</div>
+        <div class="hint">
+          Sonra görev satırından: “Paylaş (ICS)” (WhatsApp/Mail) veya “Outlook Davet” (otomatik davet).
+        </div>
       </div>
+
+      <!-- Ara / Filtre / Sıralama -->
+      <div class="toolbar">
+        <input id="searchInp" type="text" placeholder="Ara (başlık veya detay…)" />
+        <select id="statusFilter">
+          <option value="all" selected>Filtre: Tümü</option>
+          <option value="todo">Filtre: Yapılacak</option>
+          <option value="done">Filtre: Tamamlanan</option>
+          <option value="overdue">Filtre: Geciken</option>
+        </select>
+        <select id="sortSel">
+          <option value="created_desc" selected>Sırala: Yeni</option>
+          <option value="deadline_asc">Sırala: Hedef Yakın</option>
+          <option value="priority_desc">Sırala: Öncelik</option>
+        </select>
+        <button id="clearSearch" class="ghost">Temizle</button>
+      </div>
+
+      <div id="summary" class="summary"></div>
 
       <ul id="list"></ul>
     </div>
   </div>
 
 <script>
-/*
-  İstenen değişiklikler:
-  - Başlık alanı küçültüldü
-  - Etiket alanı kaldırıldı
-  - Arama/filtre/sıralama kaldırıldı
-  - "Listeye Kaydet" -> "Plan Oluştur" ve Detaylar altına taşındı
-  - Android + iOS Takvim için: ICS ile "Takvime Ekle"
-*/
-
 const STORAGE_KEY = 'ios_todo_v3';
 const NOTIFY_THRESHOLD_MIN = 5;
 const CHECK_INTERVAL_MS = 30 * 1000;
@@ -145,10 +179,17 @@ const titleInp = document.getElementById('titleInp');
 const descInp = document.getElementById('descInp');
 const datetimeInp = document.getElementById('datetimeInp');
 const prioInp = document.getElementById('prioInp');
+const attendeesInp = document.getElementById('attendeesInp');
 const addBtn = document.getElementById('addBtn');
 
+const searchInp = document.getElementById('searchInp');
+const statusFilter = document.getElementById('statusFilter');
+const sortSel = document.getElementById('sortSel');
+const clearSearchBtn = document.getElementById('clearSearch');
+const summaryEl = document.getElementById('summary');
+
 let tasks = [];
-let scheduled = {};      // taskId -> timeoutId
+let scheduled = {};     // taskId -> timeoutId
 let editingId = null;
 
 const alarmAudio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
@@ -186,6 +227,18 @@ descInp.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') addTask();
 });
 
+[searchInp, statusFilter, sortSel].forEach(el => {
+  el.addEventListener('input', refreshList);
+  el.addEventListener('change', refreshList);
+});
+clearSearchBtn.addEventListener('click', () => {
+  searchInp.value = '';
+  statusFilter.value = 'all';
+  sortSel.value = 'created_desc';
+  refreshList();
+});
+
+/* ---- helpers ---- */
 function isoToLocalInput(iso){
   if (!iso) return '';
   const d = new Date(iso);
@@ -199,9 +252,25 @@ function localInputToISO(val){
   if (isNaN(d)) return '';
   return d.toISOString();
 }
+function parseEmails(raw){
+  const text = (raw || '').trim();
+  if (!text) return [];
+  const parts = text.split(/[,;\s]+/).map(x => x.trim()).filter(Boolean);
+  const seen = new Set();
+  const ok = [];
+  for (const p of parts) {
+    const email = p.toLowerCase();
+    // basit doğrulama
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue;
+    if (seen.has(email)) continue;
+    seen.add(email);
+    ok.push(email);
+    if (ok.length >= 20) break;
+  }
+  return ok;
+}
 
 function normalizeTask(t){
-  // eski kayıtlar bozulmasın: tags varsa görmezden gel
   if (!t.id) t.id = 't_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
   if (typeof t.title !== 'string') t.title = '';
   if (typeof t.desc !== 'string') t.desc = '';
@@ -210,6 +279,7 @@ function normalizeTask(t){
   if (typeof t.done !== 'boolean') t.done = false;
   if (typeof t.alerted !== 'boolean') t.alerted = false;
   if (!t.priority) t.priority = 'medium';
+  if (!Array.isArray(t.attendees)) t.attendees = [];
   return t;
 }
 
@@ -229,6 +299,7 @@ function save(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 }
 
+/* ---- add ---- */
 function addTask(){
   const title = titleInp.value.trim();
   if (!title) { alert('Lütfen bir başlık girin!'); return; }
@@ -236,6 +307,7 @@ function addTask(){
   const desc = descInp.value.trim();
   const deadlineISO = localInputToISO(datetimeInp.value || '');
   const created = new Date().toLocaleString();
+  const attendees = parseEmails(attendeesInp.value);
 
   const task = normalizeTask({
     id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
@@ -245,7 +317,8 @@ function addTask(){
     deadline: deadlineISO,
     done: false,
     alerted: false,
-    priority: prioInp.value || 'medium'
+    priority: prioInp.value || 'medium',
+    attendees
   });
 
   tasks.unshift(task);
@@ -259,15 +332,16 @@ function addTask(){
   descInp.value = '';
   datetimeInp.value = '';
   prioInp.value = 'medium';
+  attendeesInp.value = '';
 }
 
+/* ---- list logic ---- */
 function isOverdue(task){
   if (!task.deadline) return false;
   const d = new Date(task.deadline);
   if (isNaN(d)) return false;
   return Date.now() > d.getTime();
 }
-
 function prioLabel(p){
   if (p === 'high') return 'Yüksek';
   if (p === 'low') return 'Düşük';
@@ -279,12 +353,56 @@ function prioChipClass(p){
   return 'chip prio-med';
 }
 
-function refreshList(){
-  listEl.innerHTML = '';
-  tasks.forEach(t => renderTask(t));
-  updateOverdueUI();
+function getVisibleTasks(){
+  const q = (searchInp.value || '').trim().toLowerCase();
+  const st = statusFilter.value;
+  const sort = sortSel.value;
+
+  let res = [...tasks];
+
+  if (q) {
+    res = res.filter(t => (t.title + ' ' + t.desc).toLowerCase().includes(q));
+  }
+  if (st === 'todo') res = res.filter(t => !t.done);
+  if (st === 'done') res = res.filter(t => t.done);
+  if (st === 'overdue') res = res.filter(t => !t.done && isOverdue(t));
+
+  if (sort === 'created_desc') {
+    res.sort((a,b) => (a.id < b.id ? 1 : -1));
+  } else if (sort === 'deadline_asc') {
+    res.sort((a,b) => {
+      const da = a.deadline ? new Date(a.deadline).getTime() : Infinity;
+      const db = b.deadline ? new Date(b.deadline).getTime() : Infinity;
+      return da - db;
+    });
+  } else if (sort === 'priority_desc') {
+    const w = { high: 3, medium: 2, low: 1 };
+    res.sort((a,b) => (w[b.priority]||2) - (w[a.priority]||2));
+  }
+  return res;
 }
 
+function refreshList(){
+  listEl.innerHTML = '';
+  const visible = getVisibleTasks();
+  visible.forEach(t => renderTask(t));
+  updateOverdueUI();
+  updateSummary();
+}
+
+function updateSummary(){
+  const total = tasks.length;
+  const done = tasks.filter(t => t.done).length;
+  const overdue = tasks.filter(t => !t.done && isOverdue(t)).length;
+  const todo = total - done;
+
+  const q = (searchInp.value || '').trim();
+  const st = statusFilter.value;
+  const filterTxt = (q || st !== 'all') ? ` • Görünen: ${getVisibleTasks().length}` : '';
+  summaryEl.textContent = `Toplam: ${total} • Yapılacak: ${todo} • Tamamlanan: ${done} • Geciken: ${overdue}${filterTxt}`;
+}
+
+/* ---- render ---- */
 function renderTask(task){
   const li = document.createElement('li');
   li.dataset.id = task.id;
@@ -301,6 +419,13 @@ function renderTask(task){
   prChip.className = prioChipClass(task.priority);
   prChip.textContent = 'Öncelik: ' + prioLabel(task.priority);
   titleDiv.appendChild(prChip);
+
+  if (Array.isArray(task.attendees) && task.attendees.length) {
+    const people = document.createElement('span');
+    people.className = 'chip people';
+    people.textContent = `Paylaşım: ${task.attendees.length} kişi`;
+    titleDiv.appendChild(people);
+  }
 
   left.appendChild(titleDiv);
 
@@ -360,8 +485,13 @@ function renderTask(task){
       <option value="high">Öncelik: Yüksek</option>
     `;
     ePrio.value = task.priority || 'medium';
-
     row2.appendChild(ePrio);
+
+    const eAtt = document.createElement('input');
+    eAtt.type = 'text';
+    eAtt.placeholder = 'Paylaşılacak e-postalar (virgülle)';
+    eAtt.value = (task.attendees || []).join(', ');
+    row2.appendChild(eAtt);
 
     const eDesc = document.createElement('textarea');
     eDesc.value = task.desc || '';
@@ -384,7 +514,8 @@ function renderTask(task){
         title: eTitle.value,
         desc: eDesc.value,
         deadline: localInputToISO(eDeadline.value),
-        priority: ePrio.value
+        priority: ePrio.value,
+        attendees: parseEmails(eAtt.value)
       });
     };
     cancelBtn.onclick = (e) => {
@@ -393,24 +524,11 @@ function renderTask(task){
       refreshList();
     };
 
-    eTitle.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') saveBtn.click();
-      if (e.key === 'Escape') cancelBtn.click();
-    });
-    eDesc.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') saveBtn.click();
-      if (e.key === 'Escape') cancelBtn.click();
-    });
-    eDeadline.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') cancelBtn.click();
-    });
-
-    row3.appendChild(saveBtn);
-    row3.appendChild(cancelBtn);
-
     panel.appendChild(row1);
     panel.appendChild(row2);
     panel.appendChild(eDesc);
+    row3.appendChild(saveBtn);
+    row3.appendChild(cancelBtn);
     panel.appendChild(row3);
 
     left.appendChild(panel);
@@ -436,22 +554,39 @@ function renderTask(task){
   editBtn.className = 'action edit';
   editBtn.textContent = (editingId === task.id) ? 'Düzenleniyor' : 'Düzenle';
   editBtn.disabled = (editingId === task.id);
-  editBtn.onclick = (e) => {
-    e.stopPropagation();
-    editingId = task.id;
-    refreshList();
-  };
+  editBtn.onclick = (e) => { e.stopPropagation(); editingId = task.id; refreshList(); };
   right.appendChild(editBtn);
 
   const calBtn = document.createElement('button');
   calBtn.className = 'action calendar';
   calBtn.textContent = 'Takvime Ekle';
-  calBtn.onclick = async (e) => {
-    e.stopPropagation();
-    try { await addToNativeCalendar(task); }
-    catch(err){ console.error(err); alert('Takvime ekleme sırasında hata oldu.'); }
-  };
+  calBtn.onclick = async (e) => { e.stopPropagation(); await addToNativeCalendar(task); };
   right.appendChild(calBtn);
+
+  const shareBtn = document.createElement('button');
+  shareBtn.className = 'action share';
+  shareBtn.textContent = 'Paylaş (ICS)';
+  shareBtn.onclick = async (e) => { e.stopPropagation(); await shareICS(task); };
+  right.appendChild(shareBtn);
+
+  const outBtn = document.createElement('button');
+  outBtn.className = 'action outlook';
+  outBtn.textContent = 'Outlook Davet';
+  outBtn.onclick = async (e) => {
+    e.stopPropagation();
+    try {
+      if (!task.attendees || !task.attendees.length) {
+        alert('Önce paylaşılacak e-postaları gir.');
+        return;
+      }
+      await createOutlookEvent(task, true);
+      alert('Outlook daveti gönderildi (katılımcılara mail gider).');
+    } catch(err){
+      console.error(err);
+      alert('Outlook daveti gönderilemedi. (Client ID / izin / oturum kontrol et)');
+    }
+  };
+  right.appendChild(outBtn);
 
   const delBtn = document.createElement('button');
   delBtn.className = 'action delete';
@@ -459,22 +594,12 @@ function renderTask(task){
   delBtn.onclick = (e) => { e.stopPropagation(); deleteTask(task.id); };
   right.appendChild(delBtn);
 
-  // Outlook opsiyonel
-  const outBtn = document.createElement('button');
-  outBtn.className = 'action outlook';
-  outBtn.textContent = "Outlook'a Ekle";
-  outBtn.onclick = async (e) => {
-    e.stopPropagation();
-    try { await createOutlookEvent(task); alert('Outlook takviminize eklendi.'); }
-    catch(err){ console.error(err); alert('Outlook eklenemedi.'); }
-  };
-  right.appendChild(outBtn);
-
   li.appendChild(left);
   li.appendChild(right);
   listEl.appendChild(li);
 }
 
+/* ---- edit/save/delete/done ---- */
 function saveEdit(id, patch){
   const t = tasks.find(x => x.id === id);
   if (!t) return;
@@ -483,15 +608,13 @@ function saveEdit(id, patch){
   if (!newTitle) { alert('Başlık boş olamaz!'); return; }
 
   const oldDeadline = t.deadline || '';
-
   t.title = newTitle;
   t.desc = (patch.desc || '').trim();
   t.priority = patch.priority || 'medium';
   t.deadline = patch.deadline || '';
+  t.attendees = Array.isArray(patch.attendees) ? patch.attendees : [];
 
-  if (!t.done && (t.deadline !== oldDeadline)) {
-    t.alerted = false;
-  }
+  if (!t.done && (t.deadline !== oldDeadline)) t.alerted = false;
 
   save();
   editingId = null;
@@ -512,14 +635,12 @@ function toggleDone(id){
   if (!t) return;
 
   t.done = !t.done;
-
   if (t.done) {
     if (scheduled[id]) { clearTimeout(scheduled[id]); delete scheduled[id]; }
     if (editingId === id) editingId = null;
   } else {
     t.alerted = false;
   }
-
   save();
   refreshList();
   scheduleAll();
@@ -529,24 +650,13 @@ function updateOverdueUI(){
   tasks.forEach(t => {
     const el = document.querySelector('li[data-id="'+t.id+'"]');
     if (!el) return;
-
     if (isOverdue(t) && !t.done) el.classList.add('overdue'); else el.classList.remove('overdue');
-
     const titleEl = el.querySelector('.title');
     if (t.done) titleEl.classList.add('done'); else titleEl.classList.remove('done');
-
-    const hasBadge = !!el.querySelector('.alerted-badge');
-    if (t.alerted && !hasBadge) {
-      const badge = document.createElement('span');
-      badge.className='alerted-badge';
-      badge.textContent='Bildirim Gönderildi';
-      el.querySelector('.actions').insertBefore(badge, el.querySelector('.actions').firstChild);
-    } else if (!t.alerted && hasBadge) {
-      const b = el.querySelector('.alerted-badge'); if (b) b.remove();
-    }
   });
 }
 
+/* ---- notifications ---- */
 async function requestNotificationPermission(){
   if (!('Notification' in window)) return;
   if (Notification.permission === 'default') {
@@ -554,7 +664,6 @@ async function requestNotificationPermission(){
   }
 }
 
-/* Scheduling: tek bildirim */
 function scheduleForTask(task){
   if (!task.deadline || task.done || task.alerted) return;
 
@@ -593,7 +702,6 @@ function scheduleAll(){
   Object.keys(scheduled).forEach(id => cleanupTimer(id));
   tasks.forEach(t => scheduleForTask(t));
 }
-
 function sendAlarm(task){
   try {
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -617,10 +725,9 @@ window.addEventListener('storage', e => {
   }
 });
 
-/* Android + iOS Takvim: ICS */
+/* ---- ICS: add/share ---- */
 function pad2(n){ return String(n).padStart(2,'0'); }
 function toICSDateUTC(date){
-  // YYYYMMDDTHHMMSSZ
   return date.getUTCFullYear() +
     pad2(date.getUTCMonth()+1) +
     pad2(date.getUTCDate()) + 'T' +
@@ -639,7 +746,6 @@ function buildICS(task){
   const now = new Date();
   const uid = (task.id || ('t_'+Date.now())) + '@gorev-planlayici';
 
-  // Tarih yoksa: şimdi + 30 dk
   const start = task.deadline ? new Date(task.deadline) : new Date();
   const end = new Date(start.getTime() + 30*60000);
 
@@ -649,6 +755,10 @@ function buildICS(task){
 
   const summary = escapeICS(task.title || 'Plan');
   const desc = escapeICS(task.desc || '');
+
+  // Not: ATTENDEE satırları importta her zaman “davet” gibi çalışmaz,
+  // o yüzden çok güvenmeyip “Paylaş (ICS)” + Outlook Davet sunduk.
+  const attendeesLines = (task.attendees || []).map(e => `ATTENDEE;CN=${e}:mailto:${e}`);
 
   return [
     'BEGIN:VCALENDAR',
@@ -663,29 +773,33 @@ function buildICS(task){
     'DTEND:' + dtend,
     'SUMMARY:' + summary,
     desc ? ('DESCRIPTION:' + desc) : '',
+    ...attendeesLines,
     'END:VEVENT',
     'END:VCALENDAR'
   ].filter(Boolean).join('\r\n');
 }
 
-async function addToNativeCalendar(task){
+function makeICSBlob(task){
   const ics = buildICS(task);
   const filename = (task.title || 'plan').replace(/[^\w\-]+/g,'_').slice(0,40) + '.ics';
-
   const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  return { blob, filename };
+}
 
-  // iOS/Android için en iyi deneyim: Share sheet varsa paylaş
+async function addToNativeCalendar(task){
+  // “Takvime ekle” = dosyayı açtırma
+  const { blob, filename } = makeICSBlob(task);
+
+  // share sheet varsa direkt açtır
   try {
     const file = new File([blob], filename, { type: 'text/calendar' });
     if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
       await navigator.share({ files: [file], title: task.title || 'Plan', text: 'Takvime eklemek için aç.' });
       return;
     }
-  } catch(e) {
-    // canShare yoksa indirme fallback
-  }
+  } catch(e){}
 
-  // Fallback: indir
+  // fallback: indir
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -694,11 +808,30 @@ async function addToNativeCalendar(task){
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
-
-  alert('ICS dosyası indirildi. Dosyayı açıp Takvim\'e ekleyebilirsin.');
+  alert('ICS indirildi. Dosyayı açıp Takvim’e ekleyebilirsin.');
 }
 
-/* Outlook */
+async function shareICS(task){
+  const { blob, filename } = makeICSBlob(task);
+
+  const people = (task.attendees || []).join(', ');
+  const text = people
+    ? `Plan paylaşımı: ${people}\n\nDosyayı açıp Takvim'e ekleyin.`
+    : `Dosyayı açıp Takvim'e ekleyin.`;
+
+  try {
+    const file = new File([blob], filename, { type: 'text/calendar' });
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+      await navigator.share({ files: [file], title: task.title || 'Plan', text });
+      return;
+    }
+  } catch(e){}
+
+  // Share yoksa indirme
+  await addToNativeCalendar(task);
+}
+
+/* ---- Outlook invite ---- */
 async function ensureMsalLogin(){
   if (!msalInstance) throw new Error('Outlook entegrasyonu devre dışı.');
   if (!msalAccount) {
@@ -718,7 +851,8 @@ async function getAccessToken(){
     return resp.accessToken;
   }
 }
-async function createOutlookEvent(task){
+
+async function createOutlookEvent(task, withAttendees){
   if (!task) throw new Error('Task bulunamadı');
   await ensureMsalLogin();
   const token = await getAccessToken();
@@ -734,11 +868,19 @@ async function createOutlookEvent(task){
     end: { dateTime: end.toISOString(), timeZone: tz }
   };
 
+  if (withAttendees && task.attendees && task.attendees.length) {
+    event.attendees = task.attendees.map(email => ({
+      emailAddress: { address: email },
+      type: "required"
+    }));
+  }
+
   const resp = await fetch('https://graph.microsoft.com/v1.0/me/events', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify(event)
   });
+
   if (!resp.ok) throw new Error('Graph API error: ' + resp.status + ' ' + await resp.text());
   return resp.json();
 }
