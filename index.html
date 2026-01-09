@@ -37,12 +37,26 @@
       width:360px;
     }
 
+    .icon-btn{
+      width:44px;height:44px;
+      padding:0;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:#fff;
+      cursor:pointer;
+      font-size:22px;
+      line-height:44px;
+      text-align:center;
+      color:#1c1c1e;
+    }
+
     .add-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
     .add-btn{background:var(--primary);color:#fff;border:none;cursor:pointer;padding:10px 14px}
     .hint{font-size:13px;color:var(--muted)}
 
+    /* Ara / filtre / sıralama */
     .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
-    .toolbar input[type="text"]{flex:1 1 220px}
+    .toolbar input[type="text"]{flex:1 1 auto; min-width:220px;}
     .toolbar select{min-width:160px}
     .ghost{background:#fff;border:1px solid var(--border);cursor:pointer}
     .summary{margin-top:10px;font-size:13px;color:var(--muted)}
@@ -100,6 +114,71 @@
       font-size: 14px;
     }
 
+    /* Modal (Kişi seçici) */
+    .modal{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.35);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:9999;
+    }
+    .modal.hidden{display:none}
+    .modal-card{
+      width:min(680px, 100%);
+      background:#fff;
+      border-radius:14px;
+      box-shadow:0 12px 40px rgba(0,0,0,.18);
+      overflow:hidden;
+      border:1px solid #eee;
+    }
+    .modal-head{
+      padding:12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid #eee;
+      background:#fafafa;
+    }
+    .modal-head strong{font-size:15px}
+    .modal-body{padding:12px 14px}
+    .modal-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .modal-row input{flex:1 1 220px}
+    .modal-actions{display:flex;gap:8px;align-items:center}
+    .btn{padding:8px 10px;border-radius:10px;border:1px solid #e5e5ea;background:#fff;cursor:pointer}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .contacts{
+      margin-top:10px;
+      max-height:320px;
+      overflow:auto;
+      border:1px solid #eee;
+      border-radius:12px;
+    }
+    .contact-item{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-bottom:1px solid #f0f0f0;
+    }
+    .contact-item:last-child{border-bottom:none}
+    .contact-name{font-weight:600}
+    .contact-mail{font-size:12px;color:var(--muted)}
+    .contact-left{display:flex;flex-direction:column;gap:2px}
+    .pill{
+      font-size:12px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid #e5e5ea;
+      background:#fff;
+      cursor:pointer;
+    }
+    .pill.add{border-color:#c9f2df;background:#f4fff8;color:#0f6b36}
+    .pill.added{border-color:#d6eaff;background:#f4f9ff;color:#0b63d1;cursor:default}
+
     @media (max-width:600px){
       input#titleInp{width:100%}
       .input-row{flex-direction:column;align-items:stretch}
@@ -113,12 +192,23 @@
         padding: 7px;
         font-size: 13px;
       }
+
+      /* Mobilde arama alanı küçük */
+      .toolbar input[type="text"]{
+        flex: 0 0 auto;
+        height: 44px;
+        padding: 8px 10px;
+        min-width: 0;
+      }
+
+      .icon-btn{width:100%; height:44px; font-size:16px}
       .edit-row{flex-direction:column}
       .edit-row input[type="datetime-local"]{width:100%}
+      .contacts{max-height:55vh}
     }
   </style>
 
-  <!-- MSAL for Outlook (opsiyonel) -->
+  <!-- MSAL for Outlook -->
   <script src="https://alcdn.msauth.net/browser/2.28.1/js/msal-browser.min.js"></script>
 </head>
 
@@ -144,15 +234,16 @@
 
       <div class="sub-row">
         <input id="attendeesInp" type="text" placeholder="Davet e-postaları (virgülle): ali@x.com, ayse@y.com" />
+        <button id="pickContactBtn" class="icon-btn" title="Kişi seç">+</button>
       </div>
 
       <div class="add-row">
         <button id="addBtn" class="add-btn">Plan Oluştur</button>
-        <div class="hint">Görev satırından: “Paylaş (ICS)” veya “Outlook Davet”.</div>
+        <div class="hint">Görev satırından: “Paylaş (ICS)” veya “Outlook’a Ekle”.</div>
       </div>
 
       <div class="toolbar">
-        <input id="searchInp" type="text" placeholder="Ara (başlık veya detay…)" />
+        <input id="searchInp" type="text" placeholder="Ara (başlık ve detay…)" />
         <select id="statusFilter">
           <option value="all" selected>Filtre: Tümü</option>
           <option value="todo">Filtre: Yapılacak</option>
@@ -172,10 +263,32 @@
     </div>
   </div>
 
+  <!-- Kişi Seçici Modal -->
+  <div id="contactModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <strong>📇 Kişi Seç</strong>
+        <div class="modal-actions">
+          <button id="contactCloseBtn" class="btn">Kapat</button>
+          <button id="contactDoneBtn" class="btn primary">Ekle</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-row">
+          <input id="contactSearchInp" type="text" placeholder="Ara: isim veya e-posta" />
+          <button id="contactSearchBtn" class="btn">Ara</button>
+          <button id="contactRefreshBtn" class="btn">Yenile</button>
+        </div>
+        <div id="contactInfo" class="notice" style="margin-top:10px"></div>
+        <div id="contactsList" class="contacts"></div>
+      </div>
+    </div>
+  </div>
+
 <script>
 const STORAGE_KEY = 'ios_todo_v3';
 
-// İSTENEN: 10 dk kala + hedef saat geçtikten 1 sn sonra
+// 10 dk kala + hedef saat geçtikten 1 sn sonra
 const NOTIFY_BEFORE_MIN = 10;
 const LATE_AFTER_MS = 1000;
 
@@ -190,6 +303,16 @@ const prioInp = document.getElementById('prioInp');
 const attendeesInp = document.getElementById('attendeesInp');
 const addBtn = document.getElementById('addBtn');
 
+const pickContactBtn = document.getElementById('pickContactBtn');
+const contactModal = document.getElementById('contactModal');
+const contactCloseBtn = document.getElementById('contactCloseBtn');
+const contactDoneBtn = document.getElementById('contactDoneBtn');
+const contactSearchInp = document.getElementById('contactSearchInp');
+const contactSearchBtn = document.getElementById('contactSearchBtn');
+const contactRefreshBtn = document.getElementById('contactRefreshBtn');
+const contactsList = document.getElementById('contactsList');
+const contactInfo = document.getElementById('contactInfo');
+
 const searchInp = document.getElementById('searchInp');
 const statusFilter = document.getElementById('statusFilter');
 const sortSel = document.getElementById('sortSel');
@@ -197,20 +320,19 @@ const clearSearchBtn = document.getElementById('clearSearch');
 const summaryEl = document.getElementById('summary');
 
 let tasks = [];
-let scheduled = {}; // key -> timeoutId
+let scheduled = {};
 let editingId = null;
+
+// Kartal sesi 5 defa
+const eagleAudio = new Audio('https://upload.wikimedia.org/wikipedia/commons/5/59/Bald_Eagle_Yellowstone_National_Park.ogg');
+eagleAudio.preload = 'auto';
 
 // fallback alarm
 const alarmAudio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
 alarmAudio.preload = 'auto';
 
-// kartal sesi (5 defa)
-const eagleAudio = new Audio('https://upload.wikimedia.org/wikipedia/commons/5/59/Bald_Eagle_Yellowstone_National_Park.ogg');
-eagleAudio.preload = 'auto';
-
 function playAudioNTimes(audio, times){
   let count = 0;
-
   const playOnce = () => {
     count++;
     try {
@@ -231,13 +353,17 @@ function playAudioNTimes(audio, times){
       }
     }, 4000);
   };
-
   playOnce();
 }
 
-// Outlook (opsiyonel)
+/* =========================
+   Outlook / Microsoft Graph
+   =========================
+   Not: Kişi listesi için People.Read gerekir.
+*/
 const OUTLOOK_CLIENT_ID = "ba813c6d-7f29-4cdb-84ae-43a9bdbc7747";
-const OUTLOOK_SCOPES = ["Calendars.ReadWrite"];
+const OUTLOOK_SCOPES = ["User.Read", "Calendars.ReadWrite", "People.Read"]; // Contacts için gerekli
+
 let msalInstance = null;
 let msalAccount = null;
 
@@ -249,6 +375,174 @@ if (OUTLOOK_CLIENT_ID) {
   if (accs && accs.length) msalAccount = accs[0];
 }
 
+async function ensureMsalLogin(){
+  if (!msalInstance) throw new Error('Outlook entegrasyonu devre dışı.');
+  if (!msalAccount) {
+    const resp = await msalInstance.loginPopup({ scopes: OUTLOOK_SCOPES });
+    msalAccount = resp.account;
+  }
+  return msalAccount;
+}
+
+async function getAccessToken(){
+  if (!msalInstance) throw new Error('Outlook entegrasyonu devre dışı.');
+  const req = { scopes: OUTLOOK_SCOPES, account: msalAccount };
+  try {
+    const resp = await msalInstance.acquireTokenSilent(req);
+    return resp.accessToken;
+  } catch(e){
+    const resp = await msalInstance.acquireTokenPopup(req);
+    return resp.accessToken;
+  }
+}
+
+/* Kişiler (Microsoft) */
+let cachedPeople = [];             // {name,email}
+let selectedPeopleEmails = new Set();
+
+function peopleToSimple(items){
+  const out = [];
+  for (const it of items || []) {
+    const name = it.displayName || it.givenName || it.surname || it.userPrincipalName || 'Kişi';
+    const emails = [];
+    if (Array.isArray(it.scoredEmailAddresses)) {
+      for (const se of it.scoredEmailAddresses) if (se && se.address) emails.push(se.address);
+    }
+    if (it.emailAddresses && Array.isArray(it.emailAddresses)) {
+      for (const e of it.emailAddresses) if (e && e.address) emails.push(e.address);
+    }
+    if (it.userPrincipalName) emails.push(it.userPrincipalName);
+
+    const email = (emails.find(x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(x).toLowerCase())) || '').toLowerCase();
+    if (email) out.push({ name, email });
+  }
+  // uniq by email
+  const seen = new Set();
+  return out.filter(p => !seen.has(p.email) && seen.add(p.email));
+}
+
+async function fetchPeople(searchText){
+  await ensureMsalLogin();
+  const token = await getAccessToken();
+
+  const hasQuery = !!(searchText || '').trim();
+  const q = (searchText || '').trim().replace(/"/g, '\\"');
+
+  const url = hasQuery
+    ? `https://graph.microsoft.com/v1.0/me/people?$search="${encodeURIComponent(q)}"&$top=30`
+    : `https://graph.microsoft.com/v1.0/me/people?$top=50`;
+
+  const headers = {
+    Authorization: 'Bearer ' + token
+  };
+
+  // $search için bu header şart
+  if (hasQuery) headers['ConsistencyLevel'] = 'eventual';
+
+  const resp = await fetch(url, { headers });
+  if (!resp.ok) throw new Error('Kişiler alınamadı: ' + resp.status + ' ' + await resp.text());
+  const data = await resp.json();
+  const simple = peopleToSimple(data.value || []);
+  return simple;
+}
+
+function openContactsModal(){
+  contactModal.classList.remove('hidden');
+  contactSearchInp.value = '';
+  contactInfo.textContent = 'Kişiler yükleniyor... (Microsoft hesabın ile giriş ister)';
+  contactsList.innerHTML = '';
+  selectedPeopleEmails = new Set(parseEmails(attendeesInp.value));
+  loadContacts('');
+}
+
+function closeContactsModal(){
+  contactModal.classList.add('hidden');
+}
+
+async function loadContacts(query){
+  try {
+    const people = await fetchPeople(query);
+    if (!query) cachedPeople = people;
+    renderContacts(people);
+    contactInfo.textContent = people.length ? 'Kişi seçip “Ekle”ye bas.' : 'Kişi bulunamadı. Aramayı değiştir veya manuel yaz.';
+  } catch(err){
+    console.error(err);
+    contactInfo.textContent =
+      'Kişiler çekilemedi. (İzin/hesap türü olabilir) Yine de maili manuel yazabilirsin.';
+    renderContacts([]);
+  }
+}
+
+function renderContacts(people){
+  contactsList.innerHTML = '';
+  const list = people || [];
+
+  if (!list.length) {
+    const empty = document.createElement('div');
+    empty.style.padding = '12px';
+    empty.style.color = '#666';
+    empty.textContent = 'Liste boş.';
+    contactsList.appendChild(empty);
+    return;
+  }
+
+  for (const p of list) {
+    const row = document.createElement('div');
+    row.className = 'contact-item';
+
+    const left = document.createElement('div');
+    left.className = 'contact-left';
+
+    const nm = document.createElement('div');
+    nm.className = 'contact-name';
+    nm.textContent = p.name;
+
+    const em = document.createElement('div');
+    em.className = 'contact-mail';
+    em.textContent = p.email;
+
+    left.appendChild(nm);
+    left.appendChild(em);
+
+    const btn = document.createElement('button');
+    const already = selectedPeopleEmails.has(p.email);
+    btn.className = 'pill ' + (already ? 'added' : 'add');
+    btn.textContent = already ? 'Eklendi' : 'Ekle';
+    btn.disabled = already;
+
+    btn.onclick = () => {
+      selectedPeopleEmails.add(p.email);
+      btn.className = 'pill added';
+      btn.textContent = 'Eklendi';
+      btn.disabled = true;
+    };
+
+    row.appendChild(left);
+    row.appendChild(btn);
+    contactsList.appendChild(row);
+  }
+}
+
+pickContactBtn.addEventListener('click', openContactsModal);
+contactCloseBtn.addEventListener('click', closeContactsModal);
+contactDoneBtn.addEventListener('click', () => {
+  const merged = new Set(parseEmails(attendeesInp.value));
+  for (const e of selectedPeopleEmails) merged.add(e);
+  attendeesInp.value = Array.from(merged).join(', ');
+  closeContactsModal();
+});
+contactSearchBtn.addEventListener('click', () => loadContacts(contactSearchInp.value));
+contactRefreshBtn.addEventListener('click', () => loadContacts(contactSearchInp.value));
+contactSearchInp.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') loadContacts(contactSearchInp.value);
+});
+contactModal.addEventListener('click', (e) => {
+  if (e.target === contactModal) closeContactsModal();
+});
+
+/* =========================
+   App core
+   ========================= */
 window.addEventListener('load', () => {
   loadTasks();
   requestNotificationPermission();
@@ -324,9 +618,7 @@ function normalizeTask(t){
   if (!t.deadline) t.deadline = '';
   if (typeof t.done !== 'boolean') t.done = false;
 
-  // Eski sürümden gelen "alerted" varsa, spam olmasın diye ikisini de true yap
   const legacyAlerted = !!t.alerted;
-
   if (typeof t.alertedBefore !== 'boolean') t.alertedBefore = legacyAlerted;
   if (typeof t.alertedLate !== 'boolean') t.alertedLate = legacyAlerted;
 
@@ -474,7 +766,7 @@ function renderTask(task){
   if (Array.isArray(task.attendees) && task.attendees.length) {
     const people = document.createElement('span');
     people.className = 'chip people';
-    people.textContent = `Paylaşım: ${task.attendees.length} kişi`;
+    people.textContent = `Davet: ${task.attendees.length} kişi`;
     titleDiv.appendChild(people);
   }
 
@@ -506,82 +798,6 @@ function renderTask(task){
     left.appendChild(metaDiv);
   }
 
-  if (editingId === task.id) {
-    const panel = document.createElement('div');
-    panel.className = 'edit-panel';
-
-    const row1 = document.createElement('div');
-    row1.className = 'edit-row';
-
-    const eTitle = document.createElement('input');
-    eTitle.type = 'text';
-    eTitle.value = task.title;
-
-    const eDeadline = document.createElement('input');
-    eDeadline.type = 'datetime-local';
-    eDeadline.value = isoToLocalInput(task.deadline);
-
-    row1.appendChild(eTitle);
-    row1.appendChild(eDeadline);
-
-    const row2 = document.createElement('div');
-    row2.className = 'edit-row';
-
-    const ePrio = document.createElement('select');
-    ePrio.innerHTML = `
-      <option value="low">Öncelik: Düşük</option>
-      <option value="medium">Öncelik: Orta</option>
-      <option value="high">Öncelik: Yüksek</option>
-    `;
-    ePrio.value = task.priority || 'medium';
-    row2.appendChild(ePrio);
-
-    const eAtt = document.createElement('input');
-    eAtt.type = 'text';
-    eAtt.placeholder = 'Davet e-postaları (virgülle)';
-    eAtt.value = (task.attendees || []).join(', ');
-    row2.appendChild(eAtt);
-
-    const eDesc = document.createElement('textarea');
-    eDesc.value = task.desc || '';
-
-    const row3 = document.createElement('div');
-    row3.className = 'edit-row';
-
-    const saveBtn = document.createElement('button');
-    saveBtn.className = 'action save';
-    saveBtn.textContent = 'Kaydet';
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.className = 'action cancel';
-    cancelBtn.textContent = 'İptal';
-
-    saveBtn.onclick = (e) => {
-      e.stopPropagation();
-      saveEdit(task.id, {
-        title: eTitle.value,
-        desc: eDesc.value,
-        deadline: localInputToISO(eDeadline.value),
-        priority: ePrio.value,
-        attendees: parseEmails(eAtt.value)
-      });
-    };
-    cancelBtn.onclick = (e) => {
-      e.stopPropagation();
-      editingId = null;
-      refreshList();
-    };
-
-    panel.appendChild(row1);
-    panel.appendChild(row2);
-    panel.appendChild(eDesc);
-    row3.appendChild(saveBtn);
-    row3.appendChild(cancelBtn);
-    panel.appendChild(row3);
-
-    left.appendChild(panel);
-  }
-
   const right = document.createElement('div');
   right.className = 'actions';
 
@@ -590,13 +806,6 @@ function renderTask(task){
   doneBtn.textContent = task.done ? 'Geri Al' : 'Tamamlandı';
   doneBtn.onclick = (e) => { e.stopPropagation(); toggleDone(task.id); };
   right.appendChild(doneBtn);
-
-  const editBtn = document.createElement('button');
-  editBtn.className = 'action edit';
-  editBtn.textContent = (editingId === task.id) ? 'Düzenleniyor' : 'Düzenle';
-  editBtn.disabled = (editingId === task.id);
-  editBtn.onclick = (e) => { e.stopPropagation(); editingId = task.id; refreshList(); };
-  right.appendChild(editBtn);
 
   const calBtn = document.createElement('button');
   calBtn.className = 'action calendar';
@@ -610,21 +819,20 @@ function renderTask(task){
   shareBtn.onclick = async (e) => { e.stopPropagation(); await shareICS(task); };
   right.appendChild(shareBtn);
 
+  // ✅ OUTLOOK: mail yazmasa da kendi takvimine ekler
+  // ✅ mail yazdıysa attendees ekler ve Outlook davet yollar
   const outBtn = document.createElement('button');
   outBtn.className = 'action outlook';
-  outBtn.textContent = 'Outlook Davet';
+  outBtn.textContent = "Outlook'a Ekle";
   outBtn.onclick = async (e) => {
     e.stopPropagation();
     try {
-      if (!task.attendees || !task.attendees.length) {
-        alert('Önce davet e-postalarını gir.');
-        return;
-      }
-      await createOutlookEvent(task, true);
-      alert('Outlook daveti gönderildi.');
+      const hasAtt = Array.isArray(task.attendees) && task.attendees.length > 0;
+      await createOutlookEvent(task, hasAtt);
+      alert(hasAtt ? 'Outlook takvimine eklendi ve davet gönderildi.' : 'Outlook takvimine eklendi.');
     } catch(err){
       console.error(err);
-      alert('Outlook daveti gönderilemedi. (Client ID / izin / oturum kontrol et)');
+      alert("Outlook eklenemedi. (Client ID / izin / oturum kontrol et)");
     }
   };
   right.appendChild(outBtn);
@@ -640,38 +848,11 @@ function renderTask(task){
   listEl.appendChild(li);
 }
 
-/* edit/save/delete/done */
-function saveEdit(id, patch){
-  const t = tasks.find(x => x.id === id);
-  if (!t) return;
-
-  const newTitle = (patch.title || '').trim();
-  if (!newTitle) { alert('Başlık boş olamaz!'); return; }
-
-  const oldDeadline = t.deadline || '';
-  t.title = newTitle;
-  t.desc = (patch.desc || '').trim();
-  t.priority = patch.priority || 'medium';
-  t.deadline = patch.deadline || '';
-  t.attendees = Array.isArray(patch.attendees) ? patch.attendees : [];
-
-  // tarih değiştiyse iki alarmı da yeniden kur
-  if (!t.done && (t.deadline !== oldDeadline)) {
-    t.alertedBefore = false;
-    t.alertedLate = false;
-  }
-
-  save();
-  editingId = null;
-  refreshList();
-  scheduleAll();
-}
-
+/* delete/done */
 function deleteTask(id){
   tasks = tasks.filter(t => t.id !== id);
   save();
   clearTimersForTask(id);
-  if (editingId === id) editingId = null;
   refreshList();
 }
 
@@ -732,15 +913,8 @@ function scheduleForTask(task){
   const beforeAt = deadlineMs - NOTIFY_BEFORE_MIN * 60 * 1000;
   const lateAt = deadlineMs + LATE_AFTER_MS;
 
-  // 1) 10 dk kala
-  if (!task.alertedBefore && beforeAt > now) {
-    scheduleOne(task, beforeAt, 'before');
-  }
-
-  // 2) hedef saat geçince + 1 saniye
-  if (!task.alertedLate && lateAt > now) {
-    scheduleOne(task, lateAt, 'late');
-  }
+  if (!task.alertedBefore && beforeAt > now) scheduleOne(task, beforeAt, 'before');
+  if (!task.alertedLate && lateAt > now) scheduleOne(task, lateAt, 'late');
 }
 
 function scheduleOne(task, fireAt, kind){
@@ -814,7 +988,7 @@ window.addEventListener('storage', e => {
   }
 });
 
-/* ICS */
+/* ICS (iOS/Android takvim) */
 function pad2(n){ return String(n).padStart(2,'0'); }
 function toICSDateUTC(date){
   return date.getUTCFullYear() +
@@ -913,29 +1087,10 @@ async function shareICS(task){
   await addToNativeCalendar(task);
 }
 
-/* Outlook invite */
-async function ensureMsalLogin(){
-  if (!msalInstance) throw new Error('Outlook entegrasyonu devre dışı.');
-  if (!msalAccount) {
-    const resp = await msalInstance.loginPopup({ scopes: OUTLOOK_SCOPES });
-    msalAccount = resp.account;
-  }
-  return msalAccount;
-}
-async function getAccessToken(){
-  if (!msalInstance) throw new Error('Outlook entegrasyonu devre dışı.');
-  const req = { scopes: OUTLOOK_SCOPES, account: msalAccount };
-  try {
-    const resp = await msalInstance.acquireTokenSilent(req);
-    return resp.accessToken;
-  } catch(e){
-    const resp = await msalInstance.acquireTokenPopup(req);
-    return resp.accessToken;
-  }
-}
-
+/* Outlook event create */
 async function createOutlookEvent(task, withAttendees){
   if (!task) throw new Error('Task bulunamadı');
+
   await ensureMsalLogin();
   const token = await getAccessToken();
 
@@ -950,6 +1105,7 @@ async function createOutlookEvent(task, withAttendees){
     end: { dateTime: end.toISOString(), timeZone: tz }
   };
 
+  // ✅ davetler sadece varsa eklenir, yoksa sorun çıkarmaz
   if (withAttendees && task.attendees && task.attendees.length) {
     event.attendees = task.attendees.map(email => ({
       emailAddress: { address: email },
@@ -967,12 +1123,17 @@ async function createOutlookEvent(task, withAttendees){
   return resp.json();
 }
 
+/* debug */
 window.debug_clearAll = function(){
   localStorage.removeItem(STORAGE_KEY);
   tasks = [];
   editingId = null;
   refreshList();
 };
+
+/* init */
+function saveAndRender(){ save(); refreshList(); }
+
 </script>
 </body>
 </html>
