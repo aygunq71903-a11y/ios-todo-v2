@@ -25,19 +25,22 @@
 
     .input-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
     input,textarea,button,select{font-size:15px;padding:10px;border-radius:8px;border:1px solid var(--border);background:#fff}
-    /* Başlık alanı küçük */
     input#titleInp{width:220px;flex:0 0 auto}
     input[type="datetime-local"]{min-width:220px}
     textarea{width:100%;min-height:70px;resize:vertical}
 
     .sub-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
-    .sub-row input{flex:1 1 260px}
+    .sub-row input{flex:0 0 auto}
+
+    #attendeesInp{
+      max-width:360px;
+      width:360px;
+    }
 
     .add-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
     .add-btn{background:var(--primary);color:#fff;border:none;cursor:pointer;padding:10px 14px}
     .hint{font-size:13px;color:var(--muted)}
 
-    /* Ara / filtre / sıralama */
     .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
     .toolbar input[type="text"]{flex:1 1 220px}
     .toolbar select{min-width:160px}
@@ -77,7 +80,6 @@
     button.outlook{background:#eef6ff;color:var(--primary);border:1px solid #d6eaff}
 
     .overdue{border-left:6px solid var(--danger)}
-    .alerted-badge{background:#FFF0F0;color:var(--danger);padding:3px 8px;border-radius:999px;font-size:12px}
 
     .edit-panel{
       margin-top:10px;
@@ -93,14 +95,24 @@
     .edit-row input[type="text"]{flex:1 1 220px}
     .edit-row input[type="datetime-local"]{min-width:220px}
 
+    .toolbar input, .toolbar select, .toolbar button{
+      padding: 8px;
+      font-size: 14px;
+    }
+
     @media (max-width:600px){
       input#titleInp{width:100%}
       .input-row{flex-direction:column;align-items:stretch}
       input[type="datetime-local"]{width:100%}
       .sub-row{flex-direction:column;align-items:stretch}
+      #attendeesInp{max-width:100%;width:100%}
       .add-row{flex-direction:column;align-items:stretch}
       .toolbar{flex-direction:column;align-items:stretch}
       .toolbar select{width:100%}
+      .toolbar input, .toolbar select, .toolbar button{
+        padding: 7px;
+        font-size: 13px;
+      }
       .edit-row{flex-direction:column}
       .edit-row input[type="datetime-local"]{width:100%}
     }
@@ -115,11 +127,9 @@
     <div class="card">
       <h1>📝 Görev Planlayıcı</h1>
       <div class="notice">
-        Bildirimler için tarayıcı izin verin.
-        Paylaşım: Outlook daveti otomatik mail gönderir. Diğerlerinde “Paylaş (ICS)” ile kişiye gönderip takvime ekletirsin.
+        Bildirimler: 10 dk kala ve hedef saat geçtikten 1 sn sonra çalar (kartal sesi 5 defa).
       </div>
 
-      <!-- Ekleme -->
       <div class="input-row">
         <input id="titleInp" type="text" placeholder="Konu Başlığı" />
         <input id="datetimeInp" type="datetime-local" />
@@ -132,20 +142,15 @@
 
       <textarea id="descInp" placeholder="Detaylar (opsiyonel)"></textarea>
 
-      <!-- Paylaşılacak kişiler -->
       <div class="sub-row">
-        <input id="attendeesInp" type="text" placeholder="Paylaşılacak e-postalar (virgülle): ali@x.com, ayse@y.com" />
+        <input id="attendeesInp" type="text" placeholder="Davet e-postaları (virgülle): ali@x.com, ayse@y.com" />
       </div>
 
-      <!-- Plan Oluştur butonu Detay altı -->
       <div class="add-row">
         <button id="addBtn" class="add-btn">Plan Oluştur</button>
-        <div class="hint">
-          Sonra görev satırından: “Paylaş (ICS)” (WhatsApp/Mail) veya “Outlook Davet” (otomatik davet).
-        </div>
+        <div class="hint">Görev satırından: “Paylaş (ICS)” veya “Outlook Davet”.</div>
       </div>
 
-      <!-- Ara / Filtre / Sıralama -->
       <div class="toolbar">
         <input id="searchInp" type="text" placeholder="Ara (başlık veya detay…)" />
         <select id="statusFilter">
@@ -163,14 +168,17 @@
       </div>
 
       <div id="summary" class="summary"></div>
-
       <ul id="list"></ul>
     </div>
   </div>
 
 <script>
 const STORAGE_KEY = 'ios_todo_v3';
-const NOTIFY_THRESHOLD_MIN = 5;
+
+// İSTENEN: 10 dk kala + hedef saat geçtikten 1 sn sonra
+const NOTIFY_BEFORE_MIN = 10;
+const LATE_AFTER_MS = 1000;
+
 const CHECK_INTERVAL_MS = 30 * 1000;
 const MAX_TIMEOUT = 2147483647;
 
@@ -189,11 +197,43 @@ const clearSearchBtn = document.getElementById('clearSearch');
 const summaryEl = document.getElementById('summary');
 
 let tasks = [];
-let scheduled = {};     // taskId -> timeoutId
+let scheduled = {}; // key -> timeoutId
 let editingId = null;
 
+// fallback alarm
 const alarmAudio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
 alarmAudio.preload = 'auto';
+
+// kartal sesi (5 defa)
+const eagleAudio = new Audio('https://upload.wikimedia.org/wikipedia/commons/5/59/Bald_Eagle_Yellowstone_National_Park.ogg');
+eagleAudio.preload = 'auto';
+
+function playAudioNTimes(audio, times){
+  let count = 0;
+
+  const playOnce = () => {
+    count++;
+    try {
+      audio.currentTime = 0;
+      const p = audio.play();
+      if (p && typeof p.then === 'function') p.catch(() => {});
+    } catch(e){}
+
+    audio.onended = () => {
+      audio.onended = null;
+      if (count < times) setTimeout(playOnce, 150);
+    };
+
+    setTimeout(() => {
+      if (count < times && audio.onended) {
+        audio.onended = null;
+        playOnce();
+      }
+    }, 4000);
+  };
+
+  playOnce();
+}
 
 // Outlook (opsiyonel)
 const OUTLOOK_CLIENT_ID = "ba813c6d-7f29-4cdb-84ae-43a9bdbc7747";
@@ -212,6 +252,7 @@ if (OUTLOOK_CLIENT_ID) {
 window.addEventListener('load', () => {
   loadTasks();
   requestNotificationPermission();
+  setDefaultDateTime();
   refreshList();
   scheduleAll();
 
@@ -238,7 +279,7 @@ clearSearchBtn.addEventListener('click', () => {
   refreshList();
 });
 
-/* ---- helpers ---- */
+/* helpers */
 function isoToLocalInput(iso){
   if (!iso) return '';
   const d = new Date(iso);
@@ -252,6 +293,12 @@ function localInputToISO(val){
   if (isNaN(d)) return '';
   return d.toISOString();
 }
+function setDefaultDateTime(){
+  const d = new Date();
+  d.setMinutes(d.getMinutes() + 30);
+  d.setSeconds(0,0);
+  datetimeInp.value = isoToLocalInput(d.toISOString());
+}
 function parseEmails(raw){
   const text = (raw || '').trim();
   if (!text) return [];
@@ -260,7 +307,6 @@ function parseEmails(raw){
   const ok = [];
   for (const p of parts) {
     const email = p.toLowerCase();
-    // basit doğrulama
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue;
     if (seen.has(email)) continue;
     seen.add(email);
@@ -277,7 +323,13 @@ function normalizeTask(t){
   if (!t.created) t.created = new Date().toLocaleString();
   if (!t.deadline) t.deadline = '';
   if (typeof t.done !== 'boolean') t.done = false;
-  if (typeof t.alerted !== 'boolean') t.alerted = false;
+
+  // Eski sürümden gelen "alerted" varsa, spam olmasın diye ikisini de true yap
+  const legacyAlerted = !!t.alerted;
+
+  if (typeof t.alertedBefore !== 'boolean') t.alertedBefore = legacyAlerted;
+  if (typeof t.alertedLate !== 'boolean') t.alertedLate = legacyAlerted;
+
   if (!t.priority) t.priority = 'medium';
   if (!Array.isArray(t.attendees)) t.attendees = [];
   return t;
@@ -299,7 +351,7 @@ function save(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 }
 
-/* ---- add ---- */
+/* add */
 function addTask(){
   const title = titleInp.value.trim();
   if (!title) { alert('Lütfen bir başlık girin!'); return; }
@@ -316,7 +368,8 @@ function addTask(){
     created,
     deadline: deadlineISO,
     done: false,
-    alerted: false,
+    alertedBefore: false,
+    alertedLate: false,
     priority: prioInp.value || 'medium',
     attendees
   });
@@ -330,12 +383,12 @@ function addTask(){
 
   titleInp.value = '';
   descInp.value = '';
-  datetimeInp.value = '';
+  setDefaultDateTime();
   prioInp.value = 'medium';
   attendeesInp.value = '';
 }
 
-/* ---- list logic ---- */
+/* list logic */
 function isOverdue(task){
   if (!task.deadline) return false;
   const d = new Date(task.deadline);
@@ -360,9 +413,7 @@ function getVisibleTasks(){
 
   let res = [...tasks];
 
-  if (q) {
-    res = res.filter(t => (t.title + ' ' + t.desc).toLowerCase().includes(q));
-  }
+  if (q) res = res.filter(t => (t.title + ' ' + t.desc).toLowerCase().includes(q));
   if (st === 'todo') res = res.filter(t => !t.done);
   if (st === 'done') res = res.filter(t => t.done);
   if (st === 'overdue') res = res.filter(t => !t.done && isOverdue(t));
@@ -402,7 +453,7 @@ function updateSummary(){
   summaryEl.textContent = `Toplam: ${total} • Yapılacak: ${todo} • Tamamlanan: ${done} • Geciken: ${overdue}${filterTxt}`;
 }
 
-/* ---- render ---- */
+/* render */
 function renderTask(task){
   const li = document.createElement('li');
   li.dataset.id = task.id;
@@ -455,7 +506,6 @@ function renderTask(task){
     left.appendChild(metaDiv);
   }
 
-  // Edit panel
   if (editingId === task.id) {
     const panel = document.createElement('div');
     panel.className = 'edit-panel';
@@ -466,7 +516,6 @@ function renderTask(task){
     const eTitle = document.createElement('input');
     eTitle.type = 'text';
     eTitle.value = task.title;
-    eTitle.placeholder = 'Başlık';
 
     const eDeadline = document.createElement('input');
     eDeadline.type = 'datetime-local';
@@ -489,13 +538,12 @@ function renderTask(task){
 
     const eAtt = document.createElement('input');
     eAtt.type = 'text';
-    eAtt.placeholder = 'Paylaşılacak e-postalar (virgülle)';
+    eAtt.placeholder = 'Davet e-postaları (virgülle)';
     eAtt.value = (task.attendees || []).join(', ');
     row2.appendChild(eAtt);
 
     const eDesc = document.createElement('textarea');
     eDesc.value = task.desc || '';
-    eDesc.placeholder = 'Detaylar (opsiyonel)';
 
     const row3 = document.createElement('div');
     row3.className = 'edit-row';
@@ -537,13 +585,6 @@ function renderTask(task){
   const right = document.createElement('div');
   right.className = 'actions';
 
-  if (task.alerted) {
-    const badge = document.createElement('span');
-    badge.className = 'alerted-badge';
-    badge.textContent = 'Bildirim Gönderildi';
-    right.appendChild(badge);
-  }
-
   const doneBtn = document.createElement('button');
   doneBtn.className = 'action done';
   doneBtn.textContent = task.done ? 'Geri Al' : 'Tamamlandı';
@@ -576,11 +617,11 @@ function renderTask(task){
     e.stopPropagation();
     try {
       if (!task.attendees || !task.attendees.length) {
-        alert('Önce paylaşılacak e-postaları gir.');
+        alert('Önce davet e-postalarını gir.');
         return;
       }
       await createOutlookEvent(task, true);
-      alert('Outlook daveti gönderildi (katılımcılara mail gider).');
+      alert('Outlook daveti gönderildi.');
     } catch(err){
       console.error(err);
       alert('Outlook daveti gönderilemedi. (Client ID / izin / oturum kontrol et)');
@@ -599,7 +640,7 @@ function renderTask(task){
   listEl.appendChild(li);
 }
 
-/* ---- edit/save/delete/done ---- */
+/* edit/save/delete/done */
 function saveEdit(id, patch){
   const t = tasks.find(x => x.id === id);
   if (!t) return;
@@ -614,7 +655,11 @@ function saveEdit(id, patch){
   t.deadline = patch.deadline || '';
   t.attendees = Array.isArray(patch.attendees) ? patch.attendees : [];
 
-  if (!t.done && (t.deadline !== oldDeadline)) t.alerted = false;
+  // tarih değiştiyse iki alarmı da yeniden kur
+  if (!t.done && (t.deadline !== oldDeadline)) {
+    t.alertedBefore = false;
+    t.alertedLate = false;
+  }
 
   save();
   editingId = null;
@@ -625,7 +670,7 @@ function saveEdit(id, patch){
 function deleteTask(id){
   tasks = tasks.filter(t => t.id !== id);
   save();
-  if (scheduled[id]) { clearTimeout(scheduled[id]); delete scheduled[id]; }
+  clearTimersForTask(id);
   if (editingId === id) editingId = null;
   refreshList();
 }
@@ -635,12 +680,14 @@ function toggleDone(id){
   if (!t) return;
 
   t.done = !t.done;
+
   if (t.done) {
-    if (scheduled[id]) { clearTimeout(scheduled[id]); delete scheduled[id]; }
-    if (editingId === id) editingId = null;
+    clearTimersForTask(id);
   } else {
-    t.alerted = false;
+    t.alertedBefore = false;
+    t.alertedLate = false;
   }
+
   save();
   refreshList();
   scheduleAll();
@@ -656,7 +703,7 @@ function updateOverdueUI(){
   });
 }
 
-/* ---- notifications ---- */
+/* Notifications */
 async function requestNotificationPermission(){
   if (!('Notification' in window)) return;
   if (Notification.permission === 'default') {
@@ -664,57 +711,99 @@ async function requestNotificationPermission(){
   }
 }
 
+function clearTimersForTask(id){
+  Object.keys(scheduled).forEach(k => {
+    if (k.startsWith(id + '_')) {
+      clearTimeout(scheduled[k]);
+      delete scheduled[k];
+    }
+  });
+}
+
 function scheduleForTask(task){
-  if (!task.deadline || task.done || task.alerted) return;
+  if (!task.deadline || task.done) return;
 
   const d = new Date(task.deadline);
   if (isNaN(d)) return;
 
   const now = Date.now();
   const deadlineMs = d.getTime();
-  const notifyAt = deadlineMs - NOTIFY_THRESHOLD_MIN * 60 * 1000;
 
-  let fireAt = null;
-  if (notifyAt > now) fireAt = notifyAt;
-  else if (deadlineMs > now) fireAt = deadlineMs;
-  else return;
+  const beforeAt = deadlineMs - NOTIFY_BEFORE_MIN * 60 * 1000;
+  const lateAt = deadlineMs + LATE_AFTER_MS;
 
-  const delay = fireAt - now;
-  if (delay > MAX_TIMEOUT) return;
+  // 1) 10 dk kala
+  if (!task.alertedBefore && beforeAt > now) {
+    scheduleOne(task, beforeAt, 'before');
+  }
 
-  if (scheduled[task.id]) { clearTimeout(scheduled[task.id]); delete scheduled[task.id]; }
+  // 2) hedef saat geçince + 1 saniye
+  if (!task.alertedLate && lateAt > now) {
+    scheduleOne(task, lateAt, 'late');
+  }
+}
 
-  scheduled[task.id] = setTimeout(() => {
+function scheduleOne(task, fireAt, kind){
+  const delay = fireAt - Date.now();
+  if (delay <= 0 || delay > MAX_TIMEOUT) return;
+
+  const key = task.id + '_' + kind;
+  if (scheduled[key]) return;
+
+  scheduled[key] = setTimeout(() => {
     const cur = tasks.find(x => x.id === task.id);
-    if (!cur || cur.done || cur.alerted) { cleanupTimer(task.id); return; }
+    if (!cur || cur.done) {
+      clearTimeout(scheduled[key]);
+      delete scheduled[key];
+      return;
+    }
 
-    sendAlarm(cur);
-    cur.alerted = true;
+    if (kind === 'before' && cur.alertedBefore) return;
+    if (kind === 'late' && cur.alertedLate) return;
+
+    sendAlarm(cur, kind);
+
+    if (kind === 'before') cur.alertedBefore = true;
+    if (kind === 'late') cur.alertedLate = true;
+
     save();
-    refreshList();
-    cleanupTimer(task.id);
+
+    clearTimeout(scheduled[key]);
+    delete scheduled[key];
   }, delay);
 }
-function cleanupTimer(id){
-  if (scheduled[id]) { clearTimeout(scheduled[id]); delete scheduled[id]; }
-}
+
 function scheduleAll(){
-  Object.keys(scheduled).forEach(id => cleanupTimer(id));
+  Object.keys(scheduled).forEach(k => { clearTimeout(scheduled[k]); delete scheduled[k]; });
   tasks.forEach(t => scheduleForTask(t));
 }
-function sendAlarm(task){
+
+function sendAlarm(task, kind){
   try {
     if ('Notification' in window && Notification.permission === 'granted') {
-      const body = task.title + (task.deadline ? ' • ' + (new Date(task.deadline)).toLocaleString() : '');
-      const n = new Notification('Görev hatırlatması', { body, tag: task.id, renotify: false });
+      const whenText =
+        kind === 'before'
+          ? `10 dk kaldı • ${new Date(task.deadline).toLocaleString()}`
+          : `Gecikti (1 sn) • ${new Date(task.deadline).toLocaleString()}`;
+
+      const n = new Notification('Görev hatırlatması', {
+        body: `${task.title} • ${whenText}`,
+        tag: task.id + '_' + kind,
+        renotify: false
+      });
       n.onclick = () => window.focus();
     } else {
-      alert('Hatırlatma: ' + task.title);
+      alert((kind === 'before' ? '10 dk kaldı: ' : 'Gecikti: ') + task.title);
     }
   } catch(e){
     console.error('Notification error', e);
   }
-  try { alarmAudio.currentTime = 0; alarmAudio.play().catch(()=>{}); } catch(e){}
+
+  try {
+    playAudioNTimes(eagleAudio, 5);
+  } catch(e) {
+    try { alarmAudio.currentTime = 0; alarmAudio.play().catch(()=>{}); } catch(e2){}
+  }
 }
 
 window.addEventListener('storage', e => {
@@ -725,7 +814,7 @@ window.addEventListener('storage', e => {
   }
 });
 
-/* ---- ICS: add/share ---- */
+/* ICS */
 function pad2(n){ return String(n).padStart(2,'0'); }
 function toICSDateUTC(date){
   return date.getUTCFullYear() +
@@ -755,9 +844,6 @@ function buildICS(task){
 
   const summary = escapeICS(task.title || 'Plan');
   const desc = escapeICS(task.desc || '');
-
-  // Not: ATTENDEE satırları importta her zaman “davet” gibi çalışmaz,
-  // o yüzden çok güvenmeyip “Paylaş (ICS)” + Outlook Davet sunduk.
   const attendeesLines = (task.attendees || []).map(e => `ATTENDEE;CN=${e}:mailto:${e}`);
 
   return [
@@ -787,10 +873,8 @@ function makeICSBlob(task){
 }
 
 async function addToNativeCalendar(task){
-  // “Takvime ekle” = dosyayı açtırma
   const { blob, filename } = makeICSBlob(task);
 
-  // share sheet varsa direkt açtır
   try {
     const file = new File([blob], filename, { type: 'text/calendar' });
     if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
@@ -799,7 +883,6 @@ async function addToNativeCalendar(task){
     }
   } catch(e){}
 
-  // fallback: indir
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -808,12 +891,12 @@ async function addToNativeCalendar(task){
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+
   alert('ICS indirildi. Dosyayı açıp Takvim’e ekleyebilirsin.');
 }
 
 async function shareICS(task){
   const { blob, filename } = makeICSBlob(task);
-
   const people = (task.attendees || []).join(', ');
   const text = people
     ? `Plan paylaşımı: ${people}\n\nDosyayı açıp Takvim'e ekleyin.`
@@ -827,11 +910,10 @@ async function shareICS(task){
     }
   } catch(e){}
 
-  // Share yoksa indirme
   await addToNativeCalendar(task);
 }
 
-/* ---- Outlook invite ---- */
+/* Outlook invite */
 async function ensureMsalLogin(){
   if (!msalInstance) throw new Error('Outlook entegrasyonu devre dışı.');
   if (!msalAccount) {
