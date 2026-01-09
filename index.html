@@ -20,12 +20,36 @@
     .wrap{max-width:720px;margin:28px auto;padding:18px}
     .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 8px 20px rgba(0,0,0,.06)}
     h1{margin:0 0 12px 0;font-size:20px}
+    
+    /* GÜNCELLENEN ALANLAR */
     .input-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    
     input,textarea,button,select{font-size:15px;padding:10px;border-radius:8px;border:1px solid #D1D1D6}
-    input[type="text"]{flex:1 1 240px}
-    textarea{width:100%;min-height:70px;resize:vertical}
-    input[type="datetime-local"]{min-width:220px}
-    .add-btn{background:var(--primary);color:#fff;border:none;cursor:pointer}
+    
+    /* Başlık input'u artık tüm alanı kaplamıyor, sabit genişlik */
+    input[type="text"]{
+        width: 220px; /* Genişliği azalttık */
+        flex: none;   /* Esnemeyi kapattık */
+    }
+    
+    textarea{width:100%;min-height:70px;resize:vertical; box-sizing: border-box;}
+    
+    /* Tarih alanı kalan boşluğu doldursun */
+    input[type="datetime-local"]{flex: 1; min-width:200px}
+    
+    /* Ekle butonu artık tam genişlikte ve aşağıda */
+    .add-btn{
+        background:var(--primary);
+        color:#fff;
+        border:none;
+        cursor:pointer;
+        width: 100%;
+        margin-top: 10px;
+        font-weight: 600;
+        padding: 12px;
+    }
+    /* ------------------ */
+
     ul{list-style:none;padding:0;margin:12px 0 0 0}
     li{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:12px;border-radius:8px;background:#fff;border:1px solid #eee;margin-bottom:10px;transition:all .15s}
     .li-left{flex:1}
@@ -42,13 +66,13 @@
     .alerted-badge{background:#FFF0F0;color:var(--danger);padding:3px 8px;border-radius:999px;font-size:12px;margin-left:6px}
     .small{font-size:13px;color:var(--muted)}
     .notice{font-size:13px;color:var(--muted);margin-bottom:8px}
+    
     @media (max-width:600px){
       .input-row{flex-direction:column}
-      input[type="datetime-local"]{width:100%}
+      input[type="datetime-local"], input[type="text"]{width:100%} /* Mobilde tam genişlik */
     }
   </style>
 
-  <!-- MSAL for Outlook (optional) -->
   <script src="https://alcdn.msauth.net/browser/2.28.1/js/msal-browser.min.js"></script>
 </head>
 <body>
@@ -61,10 +85,11 @@
       <div class="input-row">
         <input id="titleInp" type="text" placeholder="Konu Başlığı" />
         <input id="datetimeInp" type="datetime-local" />
-        <button id="addBtn" class="add-btn">Listeye Kaydet</button>
       </div>
 
       <textarea id="descInp" placeholder="Detaylar (opsiyonel)"></textarea>
+      
+      <button id="addBtn" class="add-btn">Listeye Kaydet</button>
 
       <div style="margin-top:10px" class="small">Outlook ile takvime eklemek için "Outlook'a Ekle" tuşunu kullanın (ilk kullanımda Microsoft ile oturum açmanız istenir).</div>
 
@@ -73,20 +98,10 @@
   </div>
 
 <script>
-/*
-  Özellikler uygulandı:
-  - Tarih + saat: datetime-local input.
-  - Eklenen görevler en üstte gözükür.
-  - Seçilen tarih/saat yaklaşınca bildirim + ses.
-  - Süresi geçmiş ve işlem yapılmamış görevler kırmızı (overdue).
-  - "Tamamlandı" yaptığınızda başlık yeşile dönüşür (üstü çizili olmaz).
-  - Outlook entegrasyonu için MSAL iskeleti eklendi (OUTLOOK_CLIENT_ID doldurun).
-*/
-
 const STORAGE_KEY = 'ios_todo_v3';
-const NOTIFY_THRESHOLD_MIN = 5; // yaklaşma bildirimi eşiği (dakika)
-const CHECK_INTERVAL_MS = 30 * 1000; // periyodik kontrol
-const MAX_TIMEOUT = 2147483647; // setTimeout limit
+const NOTIFY_THRESHOLD_MIN = 5; 
+const CHECK_INTERVAL_MS = 30 * 1000; 
+const MAX_TIMEOUT = 2147483647; 
 
 const listEl = document.getElementById('list');
 const titleInp = document.getElementById('titleInp');
@@ -95,14 +110,12 @@ const datetimeInp = document.getElementById('datetimeInp');
 const addBtn = document.getElementById('addBtn');
 
 let tasks = [];
-let scheduled = {}; // key -> timeoutId
+let scheduled = {}; 
 
-// alarm sesi (public kaynak)
 const alarmAudio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
 alarmAudio.preload = 'auto';
 
-// Outlook (MSAL) - doldurulması gereken yer
-const OUTLOOK_CLIENT_ID = "ba813c6d-7f29-4cdb-84ae-43a9bdbc7747"; // <-- Azure App Registration'dan alın (boş bırakılırsa Outlook kapalı kalır)
+const OUTLOOK_CLIENT_ID = "ba813c6d-7f29-4cdb-84ae-43a9bdbc7747"; 
 const OUTLOOK_SCOPES = ["Calendars.ReadWrite"];
 let msalInstance = null;
 let msalAccount = null;
@@ -114,7 +127,6 @@ if (OUTLOOK_CLIENT_ID) {
   if (accs && accs.length) msalAccount = accs[0];
 }
 
-// Yükle
 window.addEventListener('load', () => {
   try {
     tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -124,7 +136,6 @@ window.addEventListener('load', () => {
     localStorage.removeItem(STORAGE_KEY);
     tasks = [];
   }
-  // render
   refreshList();
   requestNotificationPermission();
   scheduleAll();
@@ -134,7 +145,6 @@ window.addEventListener('load', () => {
   }, CHECK_INTERVAL_MS);
 });
 
-// Ekle
 addBtn.addEventListener('click', addTask);
 titleInp.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
 
@@ -158,28 +168,23 @@ function addTask(){
 
   tasks.unshift(task);
   save();
-  // render this item at top
   renderTask(task, true);
   scheduleForTask(task);
 
-  // clear inputs
   titleInp.value = '';
   descInp.value = '';
   datetimeInp.value = '';
 }
 
-// Save
 function save(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 }
 
-// Render helpers
 function renderTask(task, toTop = true){
   const li = document.createElement('li');
   li.dataset.id = task.id;
   if (isOverdue(task) && !task.done) li.classList.add('overdue');
 
-  // left
   const left = document.createElement('div');
   left.className = 'li-left';
 
@@ -205,7 +210,6 @@ function renderTask(task, toTop = true){
   metaDiv.innerHTML = `<b>Oluşturma:</b> ${task.created}${deadlineText}`;
   left.appendChild(metaDiv);
 
-  // right actions
   const right = document.createElement('div');
   right.className = 'actions';
 
@@ -247,24 +251,20 @@ function refreshList(){
   updateOverdueUI();
 }
 
-// Delete
 function deleteTask(id){
   tasks = tasks.filter(t => t.id !== id);
   save();
   const el = document.querySelector('li[data-id="'+id+'"]');
   if (el) el.remove();
-  // clear scheduled timeouts for that task
   Object.keys(scheduled).forEach(k => { if (k.startsWith(id+'_')) { clearTimeout(scheduled[k]); delete scheduled[k]; } });
 }
 
-// Done toggle
 function toggleDone(id){
   const t = tasks.find(x => x.id === id);
   if (!t) return;
   t.done = !t.done;
   save();
   refreshList();
-  // if marked done, clear related scheduled notifications
   if (t.done) {
     Object.keys(scheduled).forEach(k => { if (k.startsWith(id+'_')) { clearTimeout(scheduled[k]); delete scheduled[k]; } });
   } else {
@@ -272,7 +272,6 @@ function toggleDone(id){
   }
 }
 
-// Overdue check
 function isOverdue(task){
   if (!task.deadline) return false;
   const d = new Date(task.deadline);
@@ -287,7 +286,6 @@ function updateOverdueUI(){
     if (isOverdue(t) && !t.done) el.classList.add('overdue'); else el.classList.remove('overdue');
     const titleEl = el.querySelector('.title');
     if (t.done) titleEl.classList.add('done'); else titleEl.classList.remove('done');
-    // alerted badge
     const hasBadge = !!el.querySelector('.alerted-badge');
     if (t.alerted && !hasBadge) {
       const badge = document.createElement('span'); badge.className='alerted-badge'; badge.textContent='Bildirim Gönderildi';
@@ -298,7 +296,6 @@ function updateOverdueUI(){
   });
 }
 
-/* Notification permission */
 async function requestNotificationPermission(){
   if (!('Notification' in window)) return;
   if (Notification.permission === 'default') {
@@ -306,7 +303,6 @@ async function requestNotificationPermission(){
   }
 }
 
-/* Scheduling */
 function scheduleForTask(task){
   if (!task.deadline || task.done || task.alerted) return;
   const d = new Date(task.deadline);
@@ -317,14 +313,12 @@ function scheduleForTask(task){
   [notifyAt, deadlineMs].forEach(time => {
     if (time <= now) return;
     const delay = time - now;
-    if (delay > MAX_TIMEOUT) return; // çok uzaksa atlama (periyodik scheduleAll tekrar dener)
+    if (delay > MAX_TIMEOUT) return; 
     const key = task.id + '_' + time;
     if (scheduled[key]) return;
     scheduled[key] = setTimeout(() => {
-      // yeniden kontrol
       const cur = tasks.find(x => x.id === task.id);
       if (!cur || cur.done) { clearTimeout(scheduled[key]); delete scheduled[key]; return; }
-      // Bildirim + ses
       sendAlarm(cur);
       cur.alerted = true;
       save();
@@ -335,12 +329,10 @@ function scheduleForTask(task){
 }
 
 function scheduleAll(){
-  // temizle önce
   Object.keys(scheduled).forEach(k => { clearTimeout(scheduled[k]); delete scheduled[k]; });
   tasks.forEach(t => scheduleForTask(t));
 }
 
-/* Alarm function */
 function sendAlarm(task){
   try {
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -351,8 +343,6 @@ function sendAlarm(task){
       });
       n.onclick = () => window.focus();
     } else {
-      // izin yoksa fallback
-      // not ideal but user will see alert
       alert('Hatırlatma: ' + task.title);
     }
   } catch(e){
@@ -361,7 +351,6 @@ function sendAlarm(task){
   try { alarmAudio.currentTime = 0; alarmAudio.play().catch(()=>{}); } catch(e){}
 }
 
-/* Storage listener (diğer sekmelerde yapılan değişikliklere tepki) */
 window.addEventListener('storage', e => {
   if (e.key === STORAGE_KEY) {
     try { tasks = JSON.parse(e.newValue || '[]'); } catch(e){ tasks = []; }
@@ -370,7 +359,6 @@ window.addEventListener('storage', e => {
   }
 });
 
-/* Outlook / MS Graph (iskelet) */
 async function ensureMsalLogin(){
   if (!msalInstance) throw new Error('OUTLOOK_CLIENT_ID boş - Outlook entegrasyonu devre dışı.');
   if (!msalAccount) {
@@ -414,7 +402,6 @@ async function createOutlookEvent(task){
   return resp.json();
 }
 
-/* Utility: temizleme (kullanıcı isteğe bağlı) */
 window.debug_clearAll = function(){
   localStorage.removeItem(STORAGE_KEY);
   tasks = [];
