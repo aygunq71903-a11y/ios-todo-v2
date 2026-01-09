@@ -1,273 +1,426 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>Görev Planlayıcı</title>
-    <style>
-        :root { 
-            --primary: #007AFF; 
-            --bg: #F2F2F7; 
-            --card-bg: #FFFFFF;
-            --text: #1C1C1E;
-            --secondary-text: #8E8E93;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Görev Planlayıcı (Güncel)</title>
 
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background: var(--bg); 
-            margin: 0; 
-            padding: 20px; 
-            display: flex; 
-            justify-content: center; 
-        }
+  <style>
+    :root{
+      --primary:#007AFF;
+      --bg:#F2F2F7;
+      --card:#FFFFFF;
+      --text:#1C1C1E;
+      --muted:#8E8E93;
+      --danger:#FF3B30;
+      --ok:#16A34A;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--text)}
+    .wrap{max-width:720px;margin:28px auto;padding:18px}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 8px 20px rgba(0,0,0,.06)}
+    h1{margin:0 0 12px 0;font-size:20px}
+    .input-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    input,textarea,button,select{font-size:15px;padding:10px;border-radius:8px;border:1px solid #D1D1D6}
+    input[type="text"]{flex:1 1 240px}
+    textarea{width:100%;min-height:70px;resize:vertical}
+    input[type="datetime-local"]{min-width:220px}
+    .add-btn{background:var(--primary);color:#fff;border:none;cursor:pointer}
+    ul{list-style:none;padding:0;margin:12px 0 0 0}
+    li{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:12px;border-radius:8px;background:#fff;border:1px solid #eee;margin-bottom:10px;transition:all .15s}
+    .li-left{flex:1}
+    .title{font-weight:700;margin-bottom:6px}
+    .title.done{color:var(--ok);text-decoration:none}
+    .desc{color:#333;margin-bottom:8px}
+    .meta{font-size:12px;color:var(--muted)}
+    .actions{display:flex;gap:8px;align-items:center}
+    button.action{padding:6px 10px;border-radius:6px;border:none;cursor:pointer}
+    button.delete{background:#FFF0F0;color:var(--danger)}
+    button.done{background:#E8F8EE;color:var(--ok)}
+    button.outlook{background:#eef6ff;color:var(--primary);border:1px solid #d6eaff}
+    .overdue{border-left:6px solid var(--danger)}
+    .alerted-badge{background:#FFF0F0;color:var(--danger);padding:3px 8px;border-radius:999px;font-size:12px;margin-left:6px}
+    .small{font-size:13px;color:var(--muted)}
+    .notice{font-size:13px;color:var(--muted);margin-bottom:8px}
+    @media (max-width:600px){
+      .input-row{flex-direction:column}
+      input[type="datetime-local"]{width:100%}
+    }
+  </style>
 
-        .card { 
-            background: var(--card-bg); 
-            width: 100%; 
-            max-width: 450px; 
-            padding: 20px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-        }
-
-        h2 { text-align: center; color: var(--text); margin-bottom: 20px; font-weight: 700; }
-        
-        /* Giriş Alanı */
-        .input-area { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 12px; 
-            margin-bottom: 25px; 
-            background: #F9F9FB; 
-            padding: 15px; 
-            border-radius: 15px; 
-        }
-
-        input, textarea { 
-            padding: 14px; 
-            border: 1px solid #D1D1D6; 
-            border-radius: 10px; 
-            font-size: 16px; 
-            outline: none; 
-            transition: border 0.3s;
-        }
-
-        input:focus, textarea:focus { border-color: var(--primary); }
-        textarea { resize: none; height: 70px; }
-        
-        .date-row { 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            font-size: 14px; 
-            color: var(--secondary-text); 
-        }
-
-        input[type="date"] { flex: 1; padding: 10px; }
-        
-        .add-btn { 
-            background: var(--primary); 
-            color: white; 
-            border: none; 
-            padding: 14px; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            font-weight: 600; 
-            font-size: 16px; 
-        }
-
-        /* Liste Alanı */
-        ul { list-style: none; padding: 0; margin: 0; }
-        
-        li { 
-            background: white; 
-            border-bottom: 1px solid #E5E5EA; 
-            padding: 15px 0; 
-            transition: all 0.3s;
-        }
-
-        .task-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            cursor: pointer; 
-        }
-
-        .task-title { 
-            font-size: 17px; 
-            font-weight: 600; 
-            color: var(--text); 
-            flex: 1; 
-        }
-
-        .done-title { text-decoration: line-through; color: var(--secondary-text); }
-        
-        .arrow { font-size: 12px; color: #C7C7CC; transition: transform 0.3s; }
-        .rotate { transform: rotate(180deg); }
-
-        /* Detay Paneli */
-        .task-details { 
-            display: none; 
-            margin-top: 12px; 
-            padding: 12px; 
-            background: #F2F2F7; 
-            border-radius: 10px; 
-            font-size: 14px; 
-            color: #3A3A3C; 
-            word-wrap: break-word;
-        }
-
-        .show-details { display: block; }
-        
-        .task-footer { 
-            margin-top: 12px; 
-            font-size: 11px; 
-            color: var(--secondary-text); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: flex-end; 
-        }
-
-        .action-btns { display: flex; gap: 8px; }
-        
-        .del-btn { 
-            color: #FF3B30; 
-            background: #FFF0F0; 
-            border: none; 
-            padding: 6px 12px; 
-            border-radius: 6px; 
-            font-weight: 600;
-        }
-
-        .status-btn { 
-            color: var(--primary); 
-            background: #E8F2FF; 
-            border: none; 
-            padding: 6px 12px; 
-            border-radius: 6px; 
-            font-weight: 600;
-        }
-
-    </style>
+  <!-- MSAL for Outlook (optional) -->
+  <script src="https://alcdn.msauth.net/browser/2.28.1/js/msal-browser.min.js"></script>
 </head>
 <body>
+  <div class="wrap">
+    <div class="card">
+      <h1>📝 Görev Planlayıcı</h1>
 
-<div class="card">
-    <h2>📝 Planlarım</h2>
-    
-    <div class="input-area">
-        <input type="text" id="titleInp" placeholder="Konu Başlığı">
-        <textarea id="descInp" placeholder="Detaylar (Opsiyonel)"></textarea>
-        <div class="date-row">
-            <span>Bitiş Tarihi:</span>
-            <input type="date" id="dateInp">
-        </div>
-        <button class="add-btn" onclick="add()">Listeye Kaydet</button>
+      <div class="notice">Bildirimler için tarayıcı izin verin. (Sayfa açıkken alarm/bildirim çalışır.)</div>
+
+      <div class="input-row">
+        <input id="titleInp" type="text" placeholder="Konu Başlığı" />
+        <input id="datetimeInp" type="datetime-local" />
+        <button id="addBtn" class="add-btn">Listeye Kaydet</button>
+      </div>
+
+      <textarea id="descInp" placeholder="Detaylar (opsiyonel)"></textarea>
+
+      <div style="margin-top:10px" class="small">Outlook ile takvime eklemek için "Outlook'a Ekle" tuşunu kullanın (ilk kullanımda Microsoft ile oturum açmanız istenir).</div>
+
+      <ul id="list"></ul>
     </div>
-
-    <ul id="list"></ul>
-</div>
+  </div>
 
 <script>
-    // Verileri Yükle
-    window.onload = () => {
-        const saved = JSON.parse(localStorage.getItem("ios_todo_v1") || "[]");
-        saved.forEach(t => render(t));
-    };
+/*
+  Özellikler uygulandı:
+  - Tarih + saat: datetime-local input.
+  - Eklenen görevler en üstte gözükür.
+  - Seçilen tarih/saat yaklaşınca bildirim + ses.
+  - Süresi geçmiş ve işlem yapılmamış görevler kırmızı (overdue).
+  - "Tamamlandı" yaptığınızda başlık yeşile dönüşür (üstü çizili olmaz).
+  - Outlook entegrasyonu için MSAL iskeleti eklendi (OUTLOOK_CLIENT_ID doldurun).
+*/
 
-    // Verileri Kaydet
-    function save() {
-        const tasks = [];
-        document.querySelectorAll("li").forEach(li => {
-            tasks.push({
-                title: li.querySelector(".task-title").innerText,
-                desc: li.querySelector(".task-details-text").innerText,
-                created: li.dataset.created,
-                deadline: li.dataset.deadline,
-                done: li.querySelector(".task-title").classList.contains("done-title")
-            });
-        });
-        localStorage.setItem("ios_todo_v1", JSON.stringify(tasks));
+const STORAGE_KEY = 'ios_todo_v3';
+const NOTIFY_THRESHOLD_MIN = 5; // yaklaşma bildirimi eşiği (dakika)
+const CHECK_INTERVAL_MS = 30 * 1000; // periyodik kontrol
+const MAX_TIMEOUT = 2147483647; // setTimeout limit
+
+const listEl = document.getElementById('list');
+const titleInp = document.getElementById('titleInp');
+const descInp = document.getElementById('descInp');
+const datetimeInp = document.getElementById('datetimeInp');
+const addBtn = document.getElementById('addBtn');
+
+let tasks = [];
+let scheduled = {}; // key -> timeoutId
+
+// alarm sesi (public kaynak)
+const alarmAudio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
+alarmAudio.preload = 'auto';
+
+// Outlook (MSAL) - doldurulması gereken yer
+const OUTLOOK_CLIENT_ID = ""; // <-- Azure App Registration'dan alın (boş bırakılırsa Outlook kapalı kalır)
+const OUTLOOK_SCOPES = ["Calendars.ReadWrite"];
+let msalInstance = null;
+let msalAccount = null;
+if (OUTLOOK_CLIENT_ID) {
+  msalInstance = new msal.PublicClientApplication({
+    auth: { clientId: OUTLOOK_CLIENT_ID, redirectUri: window.location.origin + window.location.pathname }
+  });
+  const accs = msalInstance.getAllAccounts();
+  if (accs && accs.length) msalAccount = accs[0];
+}
+
+// Yükle
+window.addEventListener('load', () => {
+  try {
+    tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    if (!Array.isArray(tasks)) tasks = [];
+  } catch(e) {
+    console.error('localStorage parse error', e);
+    localStorage.removeItem(STORAGE_KEY);
+    tasks = [];
+  }
+  // render
+  refreshList();
+  requestNotificationPermission();
+  scheduleAll();
+  setInterval(() => {
+    updateOverdueUI();
+    scheduleAll();
+  }, CHECK_INTERVAL_MS);
+});
+
+// Ekle
+addBtn.addEventListener('click', addTask);
+titleInp.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+function addTask(){
+  const title = titleInp.value.trim();
+  if (!title) { alert('Lütfen bir başlık girin!'); return; }
+  const desc = descInp.value.trim();
+  const datetimeVal = datetimeInp.value || '';
+  const deadlineISO = datetimeVal ? (new Date(datetimeVal)).toISOString() : '';
+  const created = new Date().toLocaleString();
+
+  const task = {
+    id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    title,
+    desc: desc || '',
+    created,
+    deadline: deadlineISO,
+    done: false,
+    alerted: false
+  };
+
+  tasks.unshift(task);
+  save();
+  // render this item at top
+  renderTask(task, true);
+  scheduleForTask(task);
+
+  // clear inputs
+  titleInp.value = '';
+  descInp.value = '';
+  datetimeInp.value = '';
+}
+
+// Save
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
+
+// Render helpers
+function renderTask(task, toTop = true){
+  const li = document.createElement('li');
+  li.dataset.id = task.id;
+  if (isOverdue(task) && !task.done) li.classList.add('overdue');
+
+  // left
+  const left = document.createElement('div');
+  left.className = 'li-left';
+
+  const titleDiv = document.createElement('div');
+  titleDiv.className = 'title' + (task.done ? ' done' : '');
+  titleDiv.textContent = task.title;
+  left.appendChild(titleDiv);
+
+  if (task.desc) {
+    const descDiv = document.createElement('div');
+    descDiv.className = 'desc';
+    descDiv.textContent = task.desc;
+    left.appendChild(descDiv);
+  }
+
+  const metaDiv = document.createElement('div');
+  metaDiv.className = 'meta';
+  let deadlineText = '';
+  if (task.deadline) {
+    const d = new Date(task.deadline);
+    if (!isNaN(d)) deadlineText = ' • Hedef: ' + d.toLocaleString();
+  }
+  metaDiv.innerHTML = `<b>Oluşturma:</b> ${task.created}${deadlineText}`;
+  left.appendChild(metaDiv);
+
+  // right actions
+  const right = document.createElement('div');
+  right.className = 'actions';
+
+  if (task.alerted) {
+    const badge = document.createElement('span');
+    badge.className = 'alerted-badge';
+    badge.textContent = 'Bildirim Gönderildi';
+    right.appendChild(badge);
+  }
+
+  const doneBtn = document.createElement('button');
+  doneBtn.className = 'action done';
+  doneBtn.textContent = task.done ? 'Geri Al' : 'Tamamlandı';
+  doneBtn.onclick = (e) => { e.stopPropagation(); toggleDone(task.id); };
+  right.appendChild(doneBtn);
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'action delete';
+  delBtn.textContent = 'Sil';
+  delBtn.onclick = (e) => { e.stopPropagation(); deleteTask(task.id); };
+  right.appendChild(delBtn);
+
+  const outBtn = document.createElement('button');
+  outBtn.className = 'action outlook';
+  outBtn.textContent = "Outlook'a Ekle";
+  outBtn.onclick = async (e) => { e.stopPropagation(); try { await createOutlookEvent(task); alert('Outlook takviminize eklendi.'); } catch(err){ console.error(err); alert('Outlook eklenemedi. Konsolu kontrol edin.'); } };
+  right.appendChild(outBtn);
+
+  li.appendChild(left);
+  li.appendChild(right);
+
+  if (toTop && listEl.firstChild) listEl.insertBefore(li, listEl.firstChild);
+  else listEl.appendChild(li);
+}
+
+function refreshList(){
+  listEl.innerHTML = '';
+  tasks.forEach(t => renderTask(t, false));
+  updateOverdueUI();
+}
+
+// Delete
+function deleteTask(id){
+  tasks = tasks.filter(t => t.id !== id);
+  save();
+  const el = document.querySelector('li[data-id="'+id+'"]');
+  if (el) el.remove();
+  // clear scheduled timeouts for that task
+  Object.keys(scheduled).forEach(k => { if (k.startsWith(id+'_')) { clearTimeout(scheduled[k]); delete scheduled[k]; } });
+}
+
+// Done toggle
+function toggleDone(id){
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  save();
+  refreshList();
+  // if marked done, clear related scheduled notifications
+  if (t.done) {
+    Object.keys(scheduled).forEach(k => { if (k.startsWith(id+'_')) { clearTimeout(scheduled[k]); delete scheduled[k]; } });
+  } else {
+    scheduleForTask(t);
+  }
+}
+
+// Overdue check
+function isOverdue(task){
+  if (!task.deadline) return false;
+  const d = new Date(task.deadline);
+  if (isNaN(d)) return false;
+  return Date.now() > d.getTime();
+}
+
+function updateOverdueUI(){
+  tasks.forEach(t => {
+    const el = document.querySelector('li[data-id="'+t.id+'"]');
+    if (!el) return;
+    if (isOverdue(t) && !t.done) el.classList.add('overdue'); else el.classList.remove('overdue');
+    const titleEl = el.querySelector('.title');
+    if (t.done) titleEl.classList.add('done'); else titleEl.classList.remove('done');
+    // alerted badge
+    const hasBadge = !!el.querySelector('.alerted-badge');
+    if (t.alerted && !hasBadge) {
+      const badge = document.createElement('span'); badge.className='alerted-badge'; badge.textContent='Bildirim Gönderildi';
+      el.querySelector('.actions').insertBefore(badge, el.querySelector('.actions').firstChild);
+    } else if (!t.alerted && hasBadge) {
+      const b = el.querySelector('.alerted-badge'); if (b) b.remove();
     }
+  });
+}
 
-    // Ekrana Çiz
-    function render(task) {
-        const li = document.createElement("li");
-        li.dataset.created = task.created;
-        li.dataset.deadline = task.deadline;
+/* Notification permission */
+async function requestNotificationPermission(){
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    try { await Notification.requestPermission(); } catch(e){ console.warn(e); }
+  }
+}
 
-        li.innerHTML = `
-            <div class="task-header" onclick="toggleDetails(this)">
-                <span class="task-title ${task.done ? 'done-title' : ''}">${task.title}</span>
-                <span class="arrow">▼</span>
-            </div>
-            <div class="task-details">
-                <div class="task-details-text">${task.desc}</div>
-                <div class="task-footer">
-                    <div>
-                        <b>Oluşturma:</b> ${task.created}<br>
-                        ${task.deadline ? '<b>Hedef:</b> ' + task.deadline : ''}
-                    </div>
-                    <div class="action-btns">
-                        <button class="status-btn" onclick="toggleDone(this)">✓</button>
-                        <button class="del-btn" onclick="this.closest('li').remove();save()">Sil</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.getElementById("list").appendChild(li);
+/* Scheduling */
+function scheduleForTask(task){
+  if (!task.deadline || task.done || task.alerted) return;
+  const d = new Date(task.deadline);
+  if (isNaN(d)) return;
+  const now = Date.now();
+  const deadlineMs = d.getTime();
+  const notifyAt = deadlineMs - NOTIFY_THRESHOLD_MIN * 60 * 1000;
+  [notifyAt, deadlineMs].forEach(time => {
+    if (time <= now) return;
+    const delay = time - now;
+    if (delay > MAX_TIMEOUT) return; // çok uzaksa atlama (periyodik scheduleAll tekrar dener)
+    const key = task.id + '_' + time;
+    if (scheduled[key]) return;
+    scheduled[key] = setTimeout(() => {
+      // yeniden kontrol
+      const cur = tasks.find(x => x.id === task.id);
+      if (!cur || cur.done) { clearTimeout(scheduled[key]); delete scheduled[key]; return; }
+      // Bildirim + ses
+      sendAlarm(cur);
+      cur.alerted = true;
+      save();
+      updateOverdueUI();
+      clearTimeout(scheduled[key]); delete scheduled[key];
+    }, delay);
+  });
+}
+
+function scheduleAll(){
+  // temizle önce
+  Object.keys(scheduled).forEach(k => { clearTimeout(scheduled[k]); delete scheduled[k]; });
+  tasks.forEach(t => scheduleForTask(t));
+}
+
+/* Alarm function */
+function sendAlarm(task){
+  try {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const n = new Notification('Görev hatırlatması', {
+        body: task.title + (task.deadline ? ' • ' + (new Date(task.deadline)).toLocaleString() : ''),
+        tag: task.id,
+        renotify: false
+      });
+      n.onclick = () => window.focus();
+    } else {
+      // izin yoksa fallback
+      // not ideal but user will see alert
+      alert('Hatırlatma: ' + task.title);
     }
+  } catch(e){
+    console.error('Notification error', e);
+  }
+  try { alarmAudio.currentTime = 0; alarmAudio.play().catch(()=>{}); } catch(e){}
+}
 
-    // Detay Aç/Kapat
-    function toggleDetails(header) {
-        const details = header.nextElementSibling;
-        const arrow = header.querySelector(".arrow");
-        details.classList.toggle("show-details");
-        arrow.classList.toggle("rotate");
-    }
+/* Storage listener (diğer sekmelerde yapılan değişikliklere tepki) */
+window.addEventListener('storage', e => {
+  if (e.key === STORAGE_KEY) {
+    try { tasks = JSON.parse(e.newValue || '[]'); } catch(e){ tasks = []; }
+    scheduleAll();
+    refreshList();
+  }
+});
 
-    // Tamamlandı Yap
-    function toggleDone(btn) {
-        const li = btn.closest('li');
-        const title = li.querySelector('.task-title');
-        title.classList.toggle('done-title');
-        save();
-    }
+/* Outlook / MS Graph (iskelet) */
+async function ensureMsalLogin(){
+  if (!msalInstance) throw new Error('OUTLOOK_CLIENT_ID boş - Outlook entegrasyonu devre dışı.');
+  if (!msalAccount) {
+    const resp = await msalInstance.loginPopup({ scopes: OUTLOOK_SCOPES });
+    msalAccount = resp.account;
+  }
+  return msalAccount;
+}
 
-    // Yeni Görev Ekle
-    function add() {
-        const title = document.getElementById("titleInp");
-        const desc = document.getElementById("descInp");
-        const date = document.getElementById("dateInp");
-        
-        if(!title.value.trim()) {
-            alert("Lütfen bir başlık girin!");
-            return;
-        }
+async function getAccessToken(){
+  if (!msalInstance) throw new Error('OUTLOOK_CLIENT_ID boş - Outlook entegrasyonu devre dışı.');
+  const req = { scopes: OUTLOOK_SCOPES, account: msalAccount };
+  try {
+    const resp = await msalInstance.acquireTokenSilent(req);
+    return resp.accessToken;
+  } catch(e){
+    const resp = await msalInstance.acquireTokenPopup(req);
+    return resp.accessToken;
+  }
+}
 
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('tr-TR') + " " + now.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
+async function createOutlookEvent(task){
+  if (!task) throw new Error('Task bulunamadı');
+  await ensureMsalLogin();
+  const token = await getAccessToken();
+  const start = task.deadline ? new Date(task.deadline) : new Date();
+  const end = new Date(start.getTime() + 30*60000);
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const event = {
+    subject: task.title,
+    body: { contentType: 'Text', content: task.desc || '' },
+    start: { dateTime: start.toISOString(), timeZone: tz },
+    end: { dateTime: end.toISOString(), timeZone: tz }
+  };
+  const resp = await fetch('https://graph.microsoft.com/v1.0/me/events', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(event)
+  });
+  if (!resp.ok) throw new Error('Graph API error: ' + resp.status + ' ' + await resp.text());
+  return resp.json();
+}
 
-        const newTask = {
-            title: title.value,
-            desc: desc.value || "Açıklama yok.",
-            created: dateStr,
-            deadline: date.value,
-            done: false
-        };
+/* Utility: temizleme (kullanıcı isteğe bağlı) */
+window.debug_clearAll = function(){
+  localStorage.removeItem(STORAGE_KEY);
+  tasks = [];
+  refreshList();
+};
 
-        render(newTask);
-        save();
-        
-        // Formu temizle
-        title.value = "";
-        desc.value = "";
-        date.value = "";
-    }
 </script>
-
 </body>
 </html>
